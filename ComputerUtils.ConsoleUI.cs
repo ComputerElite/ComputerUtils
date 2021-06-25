@@ -198,6 +198,33 @@ namespace ComputerUtils.ConsoleUi
         }
     }
 
+    public class UndefinedEndProgressBar
+    {
+        public static string[] characters = new string[] { "|", "/", "-", "\\", "|", "/", "-", "\\" };
+        public int currentLine = 0;
+        public int currentIndex = 0;
+        public int lastLength = 0;
+
+        public void Start()
+        {
+            currentLine = Console.CursorTop;
+        }
+
+        public void UpdateProgress(string task)
+        {
+            Console.SetCursorPosition(2, currentLine);
+            Console.Write(new string(' ', lastLength));
+            Console.SetCursorPosition(2, currentLine);
+            Console.ForegroundColor = ConsoleColor.DarkBlue;
+            Console.Write(characters[currentIndex] + " ");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write(task);
+            currentIndex++;
+            if (currentIndex >= characters.Length) currentIndex = 0;
+            lastLength = Console.CursorLeft;
+        }
+    }
+
     public class ProgressBarUI
     {
         public int ProgressbarLength = 30;

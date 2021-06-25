@@ -14,6 +14,7 @@ using MessageBox = System.Windows.MessageBox;
 using ComputerUtils.Data;
 using ComputerUtils.VarUtils;
 using ComputerUtils.ConsoleUi;
+using System.Threading;
 
 namespace ComputerUtils
 {
@@ -24,9 +25,19 @@ namespace ComputerUtils
         [STAThread]
         static void Main(string[] args)
         {
-            DownloadUITest();
+            ProgressUITest();
             Console.WriteLine("\nPress any key to exit");
             Console.ReadLine();
+        }
+
+        static void ProgressUITest()
+        {
+            UndefinedEndProgressBar p = new UndefinedEndProgressBar();
+            p.Start();
+            for(int i = 0; i < 300000; i++)
+            {
+                p.UpdateProgress(i.ToString());
+            }
         }
 
         static void DownloadUITest()
