@@ -34,10 +34,9 @@ namespace ComputerUtils
         {
             UndefinedEndProgressBar p = new UndefinedEndProgressBar();
             p.Start();
-            for(int i = 0; i < 300000; i++)
-            {
-                p.UpdateProgress(i.ToString());
-            }
+            p.SetupSpinningWheel(200);
+            Thread.Sleep(4000);
+            p.StopSpinningWheel();
         }
 
         static void DownloadUITest()

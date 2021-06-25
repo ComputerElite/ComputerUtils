@@ -198,22 +198,56 @@ namespace ComputerUtils.ConsoleUi
         }
     }
 
-    public class UndefinedEndProgressBar
+    public class BaseUiElement
+    {
+        public int currentLine = 0;
+        public int lastLength = 0;
+
+        public void ClearCurrentLine()
+        {
+            Console.SetCursorPosition(0, currentLine);
+            Console.Write(new string(' ', lastLength));
+        }
+
+        public void StoreCurrentLineLength()
+        {
+            lastLength = Console.CursorLeft;
+        }
+    }
+
+    public class UndefinedEndProgressBar : BaseUiElement
     {
         public static string[] characters = new string[] { "|", "/", "-", "\\", "|", "/", "-", "\\" };
-        public int currentLine = 0;
         public int currentIndex = 0;
-        public int lastLength = 0;
+        public Thread spinningWheelThread = null;
 
         public void Start()
         {
             currentLine = Console.CursorTop;
         }
 
+        public void SetupSpinningWheel(int msPerSpin)
+        {
+            spinningWheelThread = new Thread(() =>
+            {
+                while(true)
+                {
+                    UpdateProgress("");
+                    Thread.Sleep(msPerSpin);
+                }
+            });
+            spinningWheelThread.Start();
+        }
+
+        public void StopSpinningWheel()
+        {
+            spinningWheelThread.Abort();
+            Console.WriteLine();
+        }
+
         public void UpdateProgress(string task)
         {
-            Console.SetCursorPosition(2, currentLine);
-            Console.Write(new string(' ', lastLength));
+            ClearCurrentLine();
             Console.SetCursorPosition(2, currentLine);
             Console.ForegroundColor = ConsoleColor.DarkBlue;
             Console.Write(characters[currentIndex] + " ");
@@ -221,16 +255,14 @@ namespace ComputerUtils.ConsoleUi
             Console.Write(task);
             currentIndex++;
             if (currentIndex >= characters.Length) currentIndex = 0;
-            lastLength = Console.CursorLeft;
+            StoreCurrentLineLength();
         }
     }
 
-    public class ProgressBarUI
+    public class ProgressBarUI : BaseUiElement
     {
         public int ProgressbarLength = 30;
         public double UpdateRate = 0.5;
-        public int currentLine = 0;
-        public int lastLength = 0;
 
         public void Start()
         {
@@ -244,9 +276,8 @@ namespace ComputerUtils.ConsoleUi
 
         public void UpdateProgress(long done, long total, string doneText = "", string totalText = "", string extraText = "")
         {
+            ClearCurrentLine();
             double percentage = done / (double)total;
-            Console.SetCursorPosition(0, currentLine);
-            Console.Write(new string(' ', lastLength));
             Console.SetCursorPosition(2, currentLine);
             for (int i = 0; i < ProgressbarLength; i++)
             {
@@ -258,7 +289,7 @@ namespace ComputerUtils.ConsoleUi
             Console.Write(" ");
             if(doneText != "" && totalText != "") Console.Write(doneText + " / " + totalText + "   ");
             Console.Write(extraText);
-            lastLength = Console.CursorLeft;
+            StoreCurrentLineLength();
         }
     }
 
