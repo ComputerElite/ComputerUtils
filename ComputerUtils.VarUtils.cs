@@ -54,15 +54,24 @@ namespace ComputerUtils.VarUtils
         public string ByteSizeToString(long input, int decimals = 2)
         {
             // TB
-            if (input > 1099511627776) return (input / 1099511627776).ToString("D" + decimals) + " TB";
+            if (input > 1099511627776) return String.Format("{0:0." + new string('#', decimals) + "}", input / 1099511627776.0) + " TB";
             // GB
-            else if (input > 1073741824) return (input / 1073741824).ToString("D" + decimals) + " GB";
+            else if (input > 1073741824) return String.Format("{0:0." + new string('#', decimals) + "}", input / 1073741824.0) + " GB";
             // MB
-            else if (input > 1048576) return (input / 1048576).ToString("D" + decimals) + " MB";
+            else if (input > 1048576) return String.Format("{0:0." + new string('#', decimals) + "}", input / 1048576.0) + " MB";
             // KB
-            else if (input > 1024) return (input / 1024).ToString("D" + decimals) + " KB";
+            else if (input > 1024) return String.Format("{0:0." + new string('#', decimals) + "}", input / 1024.0) + " KB";
             // Bytes
             else return input + " Bytes";
+        }
+
+        public string SecondsToBetterString(long seconds)
+        {
+            if (seconds < 60) return seconds + " S";
+            else if (seconds >= 60) return Math.Floor(seconds / 60.0) + " M  " + (seconds % 60) + " S";
+            else if (seconds > 3600) return Math.Floor(seconds / 3600.0) + " H  " + Math.Floor(seconds % 3600 / 60.0) + " M  " + (seconds % 60) + " S";
+            else if (seconds > 86400) return Math.Floor(seconds / 86400.0) + " D  " + Math.Floor(seconds % 86400 / 3600.0) + " H  " + Math.Floor(seconds % 311040000 / 60.0) + " M  " + (seconds % 60) + " S";
+            return seconds.ToString() + " S";
         }
     }
 }

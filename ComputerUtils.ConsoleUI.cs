@@ -1,4 +1,5 @@
-﻿using ComputerUtils.VarUtils;
+﻿using ComputerUtils.Logging;
+using ComputerUtils.VarUtils;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -21,6 +22,28 @@ namespace ComputerUtils.ConsoleUi
 
         public delegate void finished();
         public event finished ConsoleUiInputFinishedEvent;
+
+        public static string QuestionString(string question)
+        {
+            Console.ForegroundColor = ConsoleColor.Blue;
+            Console.Write(question);
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.ForegroundColor = ConsoleColor.White;
+            return Console.ReadLine();
+        }
+
+        public static string ShowMenu(string[] options, string questionName = "choice")
+        {
+            Logger.Log("Setting up menu with " + options.Length + " options");
+            Console.ForegroundColor = ConsoleColor.White;
+            for (int i = 0; i < options.Length; i++)
+            {
+                Console.WriteLine("[" + (i + 1) + "] " + options[i]);
+            }
+            String choice = QuestionString(questionName + ": ");
+            Logger.Log("User choose option " + choice + " in menu");
+            return choice;
+        }
 
 
         public ConsoleUiToggle AddUiToggle(int xOffset, int yOffset, string label)
@@ -220,6 +243,7 @@ namespace ComputerUtils.ConsoleUi
         public static string[] characters = new string[] { "|", "/", "-", "\\", "|", "/", "-", "\\" };
         public int currentIndex = 0;
         public Thread spinningWheelThread = null;
+        public string currentText = "";
 
         public void Start()
         {
@@ -232,7 +256,7 @@ namespace ComputerUtils.ConsoleUi
             {
                 while(true)
                 {
-                    UpdateProgress("");
+                    UpdateProgress(currentText);
                     Thread.Sleep(msPerSpin);
                 }
             });
@@ -245,9 +269,17 @@ namespace ComputerUtils.ConsoleUi
             Console.WriteLine();
         }
 
-        public void UpdateProgress(string task)
+        public void UpdateProgress(string task, bool NextLine = false)
         {
-            ClearCurrentLine();
+            if(NextLine)
+            {
+                Console.WriteLine();
+                Start();
+            } else
+            {
+                ClearCurrentLine();
+            }
+            currentText = task;
             Console.SetCursorPosition(2, currentLine);
             Console.ForegroundColor = ConsoleColor.DarkBlue;
             Console.Write(characters[currentIndex] + " ");
@@ -295,18 +327,18 @@ namespace ComputerUtils.ConsoleUi
 
     public class DownloadProgressUI
     {
-        public bool StartDownload(string downloadLink, string destination)
+        public bool StartDownload(string downloadLink, string destination, bool showETA = true)
         {
-            return DownloadThreadHandler(downloadLink, destination).Result;
+            return DownloadThreadHandler(downloadLink, destination, showETA).Result;
         }
 
-        public async Task<bool> DownloadThreadHandler(string downloadLink, string destination)
+        public async Task<bool> DownloadThreadHandler(string downloadLink, string destination, bool showETA = true)
         {
             bool completed = false;
             bool success = false;
             Thread t = new Thread(() =>
             {
-                success = DownloadThread(downloadLink, destination).Result;
+                success = DownloadThread(downloadLink, destination, showETA).Result;
                 completed = true;
             });
             t.Start();
@@ -317,7 +349,7 @@ namespace ComputerUtils.ConsoleUi
             return success;
         }
 
-        public async Task<bool> DownloadThread(string downloadLink, string destination)
+        public async Task<bool> DownloadThread(string downloadLink, string destination, bool showETA = true)
         {
             bool completed = false;
             bool success = false;
@@ -335,6 +367,8 @@ namespace ComputerUtils.ConsoleUi
             long lastBytes = 0;
             ProgressBarUI progressBar = new ProgressBarUI();
             progressBar.Start();
+            List<long> lastBytesPerSec = new List<long>();
+            long BytesToRecieve = 0;
             c.DownloadProgressChanged += (o, e) =>
             {
                 if (locked) return;
@@ -342,12 +376,17 @@ namespace ComputerUtils.ConsoleUi
                 double secondsPassed = (DateTime.Now - lastUpdate).TotalSeconds;
                 if (secondsPassed >= progressBar.UpdateRate)
                 {
+                    BytesToRecieve = e.TotalBytesToReceive;
                     string current = s.ByteSizeToString(e.BytesReceived);
-                    string total = s.ByteSizeToString(e.TotalBytesToReceive);
+                    string total = s.ByteSizeToString(BytesToRecieve);
                     long bytesPerSec = (long)Math.Round((e.BytesReceived - lastBytes) / secondsPassed);
+                    lastBytesPerSec.Add(bytesPerSec);
+                    if (lastBytesPerSec.Count > 5) lastBytesPerSec.RemoveAt(0);
                     lastBytes = e.BytesReceived;
-
-                    progressBar.UpdateProgress(e.BytesReceived, e.TotalBytesToReceive, current, total, s.ByteSizeToString(bytesPerSec) + "/s");
+                    long avg = 0;
+                    foreach (long l in lastBytesPerSec) avg += l;
+                    avg = avg / lastBytesPerSec.Count;
+                    progressBar.UpdateProgress(e.BytesReceived, BytesToRecieve, current, total, s.ByteSizeToString(bytesPerSec, 0) + "/s" + (showETA ? ("   ETA " + s.SecondsToBetterString((e.TotalBytesToReceive - e.BytesReceived) / avg)) : ""));
                     lastUpdate = DateTime.Now;
                 }
                 locked = false;
@@ -355,6 +394,8 @@ namespace ComputerUtils.ConsoleUi
             c.DownloadFileCompleted += (o, e) =>
             {
                 if(e.Error == null) success = true;
+                Logger.Log("Did download succeed: " + success + (success ? "" : ":\n" + e.ToString()));
+                progressBar.UpdateProgress(BytesToRecieve, BytesToRecieve, s.ByteSizeToString(BytesToRecieve), s.ByteSizeToString(BytesToRecieve), success ? "Finished" : "An error occured");
                 completed = true;
                 Console.WriteLine();
             };
@@ -372,7 +413,7 @@ namespace ComputerUtils.ConsoleUi
             var frame = new DispatcherFrame();
             new Thread((ThreadStart)(() =>
             {
-                Thread.Sleep(200);
+                Thread.Sleep(100);
                 frame.Continue = false;
             })).Start();
             Dispatcher.PushFrame(frame);

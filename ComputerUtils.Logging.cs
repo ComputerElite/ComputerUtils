@@ -10,12 +10,14 @@ namespace ComputerUtils.Logging {
         public static void Log(string text, LoggingType loggingType = LoggingType.Info)
         {
             //Remove username
-            if(removeUsernamesFromLog) text = Regex.Replace(text, @"([A-Z]{1}\:\\[Uu]sers\\)([^\\]*\\)(.*)", "$1$3");
+            if (logFile == "") return;
+            if (removeUsernamesFromLog) text = Regex.Replace(text, @"([A-Z]{1}\:\\[Uu]sers\\)([^\\]*\\)(.*)", "$1$3");
             string linePrefix = GetLinePrefix(loggingType);
             File.AppendAllText(logFile, "\n" + linePrefix + text.Replace("\n", "\n" + linePrefix));
         }
         public static void LogRaw(string text)
         {
+            if (logFile == "") return;
             File.AppendAllText(logFile, text);
         }
 
