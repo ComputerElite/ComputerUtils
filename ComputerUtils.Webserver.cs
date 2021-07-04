@@ -67,30 +67,32 @@ namespace ComputerUtils.Webserver
             }
         }
 
-        public void AddRoute(string method, string path, Action<ServerRequest> action)
+        public void AddRoute(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true)
         {
-            routes.Add(new Route(method, path, action, false));
+            routes.Add(new Route(method, path, action, onlyCheckBeginning, ignoreCase, ignoreEnd));
         }
 
-        public void AddRouteFile(string path, string filePath)
+        public void AddRouteFile(string path, string filePath, bool ignoreCase = true, bool ignoreEnd = true)
         {
             string contentType = GetContentTpe(filePath);
-            routes.Add(new Route("GET", path, new Action<ServerRequest>(ServerRequest =>
+            AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
                 if (File.Exists(filePath)) ServerRequest.SendData(File.ReadAllBytes(filePath), contentType);
-                else ServerRequest.SendString("The requested file does not exist", "text/plain", 404);
-            }), false));
+                else ServerRequest.Send404();
+                return true;
+            }), false, ignoreCase, ignoreEnd);
         }
 
-        public void AddRouteFolderWithFiles(string path, string folderPath)
+        public void AddRouteFolderWithFiles(string path, string folderPath, bool ignoreCase = true, bool ignoreEnd = true)
         {
             if (!folderPath.EndsWith("\\") && folderPath.Length > 0) folderPath += "\\";
-            routes.Add(new Route("GET", path, new Action<ServerRequest>(ServerRequest =>
+            AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
                 string file = folderPath + ServerRequest.path.Substring(path.Length + 1).Replace("/", "\\");
                 if (File.Exists(file)) ServerRequest.SendData(File.ReadAllBytes(file), GetContentTpe(file));
-                else ServerRequest.SendString("The requested file does not exist", "text/plain", 404);
-            }), true));
+                else ServerRequest.Send404();
+                return true;
+            }), true, ignoreCase, ignoreEnd);
         }
 
         public void SetAccessCheck(Func<ServerRequest, bool> check)
@@ -186,27 +188,37 @@ namespace ComputerUtils.Webserver
         public string method { get; set; } = "GET";
         public string path { get; set; } = "/";
         public bool onlyCheckBeginning { get; set; } = false;
-        public Action<ServerRequest> action { get; set; } = null;
+        public bool ignoreCase { get; set; } = true;
+        public bool ignoreEnd { get; set; } = true;
+        public Func<ServerRequest, bool> action { get; set; } = null;
 
-        public Route()
-        {
-
-        }
-
-        public Route(string method, string path, Action<ServerRequest> action, bool onlyCheckBeginning)
+        public Route(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning, bool ignoreCase, bool ignoreEnd)
         {
             this.method = method;
             this.path = path;
             this.action = action;
             this.onlyCheckBeginning = onlyCheckBeginning;
+            this.ignoreCase = ignoreCase;
+            this.ignoreEnd = ignoreEnd;
         }
 
         public bool UseRoute(ServerRequest request)
         {
-            if((request.path == this.path || onlyCheckBeginning && request.path.StartsWith(this.path)) && request.method == this.method)
+            string pathTmp = this.path;
+            string requestPathTmp = request.path;
+            if(ignoreCase)
             {
-                action.Invoke(request);
-                return true;
+                pathTmp = pathTmp.ToLower();
+                requestPathTmp = requestPathTmp.ToLower();
+            }
+            if(ignoreEnd)
+            {
+                pathTmp = pathTmp.Trim(new char[] { '/' });
+                requestPathTmp = requestPathTmp.Trim(new char[] { '/' });
+            }
+            if((requestPathTmp == pathTmp || onlyCheckBeginning && requestPathTmp.StartsWith(pathTmp)) && request.method == this.method)
+            {
+                return action(request);
             }
             return false;
         }
@@ -219,6 +231,10 @@ namespace ComputerUtils.Webserver
         public string method { get; set; } = "GET";
         public HttpServer server { get; set; } = null;
         public bool closed { get; set; } = false;
+        public byte[] bodyBytes { get; set; } = new byte[0];
+        public string bodyString { get; set; } = "";
+        public string requestBodyContentType { get; set; } = "";
+        public object customObject { get; set; } = null;
 
         public ServerRequest(HttpListenerContext context, HttpServer server)
         {
@@ -226,6 +242,12 @@ namespace ComputerUtils.Webserver
             this.path = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
             this.method = context.Request.HttpMethod;
             this.server = server;
+            if(context.Request.HasEntityBody && context.Request.InputStream != Stream.Null)
+            {
+                bodyString = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding).ReadToEnd();
+                bodyBytes = context.Request.ContentEncoding.GetBytes(bodyString);
+                this.requestBodyContentType = context.Request.ContentType;
+            }
         }
 
         public void Send404()
@@ -253,8 +275,8 @@ namespace ComputerUtils.Webserver
             context.Response.ContentType = contentType;
             context.Response.ContentEncoding = contentEncoding;
             context.Response.ContentLength64 = data.LongLength;
-            context.Response.OutputStream.WriteAsync(data, 0, data.Length);
             context.Response.StatusCode = statusCode;
+            context.Response.OutputStream.WriteAsync(data, 0, data.Length);
             if (closeRequest) Close();
             closed = closeRequest;
         }
