@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using ComputerUtils.Logging;
@@ -45,10 +46,17 @@ namespace ComputerUtils.GraphQL
 
         }
 
-        public string Request(bool asBody = false)
+        public string Request(bool asBody = false, Dictionary<string, string> customHeaders = null)
         {
             WebClient c = new WebClient();
             c.Headers.Add("x-requested-with", "RiftDowngrader");
+            if(customHeaders != null)
+            {
+                foreach (KeyValuePair<string, string> header in customHeaders)
+                {
+                    c.Headers.Add(header.Key, header.Value);
+                }
+            }
             Logger.Log("Doing POST Request to " + uri + " with args " + options.ToString());
             try
             {

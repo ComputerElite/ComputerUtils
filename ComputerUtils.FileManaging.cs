@@ -65,13 +65,21 @@ namespace ComputerUtils.FileManaging
 
         public static void RecreateDirectoryIfExisting(string path)
         {
+            
             if (Directory.Exists(path))
             {
                 Logger.Log("Deleting " + path);
+                SetAttributesNormal(new DirectoryInfo(path));
                 Directory.Delete(path, true);
             }
             Logger.Log("Creating " + path);
             Directory.CreateDirectory(path);
+        }
+
+        public static void SetAttributesNormal(DirectoryInfo dir)
+        {
+            foreach (DirectoryInfo subDir in dir.GetDirectories()) SetAttributesNormal(subDir);
+            foreach (FileInfo file in dir.GetFiles()) file.Attributes = FileAttributes.Normal;
         }
     }
 }

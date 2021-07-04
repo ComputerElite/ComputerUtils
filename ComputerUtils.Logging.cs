@@ -8,16 +8,16 @@ namespace ComputerUtils.Logging {
         public static string logFile { get; set; } = "";
         public static bool removeUsernamesFromLog { get; set; } = true;
         public static bool displayLogInConsole { get; set; } = false;
+
         public static void Log(string text, LoggingType loggingType = LoggingType.Info)
         {
             //Remove username
-            if (logFile == "") return;
             if (removeUsernamesFromLog) text = Regex.Replace(text, @"([A-Z]{1}\:\\[Uu]sers\\)([^\\]*\\)(.*)", "$1$3");
             string linePrefix = GetLinePrefix(loggingType);
             text = linePrefix + text.Replace("\n", "\n" + linePrefix);
-            if(displayLogInConsole)
+            if (displayLogInConsole)
             {
-                switch(loggingType)
+                switch (loggingType)
                 {
                     case LoggingType.Error:
                         Console.ForegroundColor = ConsoleColor.Red;
@@ -38,6 +38,7 @@ namespace ComputerUtils.Logging {
                 Console.WriteLine(text);
                 Console.ForegroundColor = ConsoleColor.White;
             }
+            if (logFile == "") return;
             File.AppendAllText(logFile, "\n" + text);
         }
         public static void LogRaw(string text)
@@ -56,7 +57,6 @@ namespace ComputerUtils.Logging {
         {
             logFile = file;
         }
-
     }
 
     public enum LoggingType
