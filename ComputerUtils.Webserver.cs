@@ -17,6 +17,7 @@ namespace ComputerUtils.Webserver
     public class HttpServer
     {
         public List<Route> routes = new List<Route>();
+        public List<WebsocketRoute> wsRoutes = new List<WebsocketRoute>();
         public Func<ServerRequest, bool> accessCheck = new Func<ServerRequest, bool>(s => { return true; });
         public ServerValueObject notFoundPage = new ServerValueObject("404 Not found - The requested item couldn't be found", false, "text/plain", 404);
         public ServerValueObject accessDeniedPage = new ServerValueObject("403 Access denied - You do not have access to view this item", false, "text/plain", 403);
@@ -44,22 +45,38 @@ namespace ComputerUtils.Webserver
             }
             
             listener.Start();
-            Logger.Log("Server started");
+            Logger.Log("Http Server started");
             while(true)
             {
                 try
                 {
-                    ServerRequest request = new ServerRequest(listener.GetContextAsync().Result, this);
-                    if (!accessCheck(request))
+                    HttpListenerContext context = listener.GetContextAsync().Result;
+                    if (context.Request.IsWebSocketRequest)
                     {
-                        if (!request.closed) request.Send403();
-                        continue;
-                    }
-                    for(int i = 0; i < routes.Count; i++)
+                        string uRL = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
+                        for (int i = 0; i < wsRoutes.Count; i++)
+                        {
+                            if (wsRoutes[i].UseRoute(uRL))
+                            {
+                                SocketHandler handler = new SocketHandler(context, this, wsRoutes[i]);
+                                break;
+                            }
+                        }
+                    } else
                     {
-                        if (routes[i].UseRoute(request)) break;
+                        ServerRequest request = new ServerRequest(context, this);
+                        Logger.Log(request.path);
+                        if (!accessCheck(request))
+                        {
+                            if (!request.closed) request.Send403();
+                            continue;
+                        }
+                        for (int i = 0; i < routes.Count; i++)
+                        {
+                            if (routes[i].UseRoute(request)) break;
+                        }
+                        if (!request.closed) request.Send404();
                     }
-                    if(!request.closed) request.Send404();
                 } catch (Exception e)
                 {
                     Logger.Log("An error occured while handling a request:\n" + e.ToString(), LoggingType.Error);
@@ -93,6 +110,11 @@ namespace ComputerUtils.Webserver
                 else ServerRequest.Send404();
                 return true;
             }), true, ignoreCase, ignoreEnd);
+        }
+
+        public void AddWSRoute(string path, Action<SocketServerRequest> action, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true)
+        {
+            wsRoutes.Add(new WebsocketRoute("", action, onlyCheckBeginning, ignoreCase, ignoreEnd));
         }
 
         public void SetAccessCheck(Func<ServerRequest, bool> check)
@@ -152,6 +174,7 @@ namespace ComputerUtils.Webserver
             return "text/plain";
         }
     }
+
 
     public class ServerValueObject
     {
@@ -224,6 +247,45 @@ namespace ComputerUtils.Webserver
         }
     }
 
+    public class WebsocketRoute
+    {
+        public string path { get; set; } = "/";
+        public bool onlyCheckBeginning { get; set; } = false;
+        public bool ignoreCase { get; set; } = true;
+        public bool ignoreEnd { get; set; } = true;
+        public Action<SocketServerRequest> action { get; set; } = null;
+
+        public WebsocketRoute(string path, Action<SocketServerRequest> action, bool onlyCheckBeginning, bool ignoreCase, bool ignoreEnd)
+        {
+            this.path = path;
+            this.action = action;
+            this.onlyCheckBeginning = onlyCheckBeginning;
+            this.ignoreCase = ignoreCase;
+            this.ignoreEnd = ignoreEnd;
+        }
+
+        public bool UseRoute(string path)
+        {
+            string pathTmp = this.path;
+            string requestPathTmp = path;
+            if (ignoreCase)
+            {
+                pathTmp = pathTmp.ToLower();
+                requestPathTmp = requestPathTmp.ToLower();
+            }
+            if (ignoreEnd)
+            {
+                pathTmp = pathTmp.Trim(new char[] { '/' });
+                requestPathTmp = requestPathTmp.Trim(new char[] { '/' });
+            }
+            if (requestPathTmp == pathTmp || onlyCheckBeginning && requestPathTmp.StartsWith(pathTmp))
+            {
+                return true;
+            }
+            return false;
+        }
+    }
+
     public class ServerRequest
     {
         public HttpListenerContext context { get; set; } = null;
@@ -284,6 +346,98 @@ namespace ComputerUtils.Webserver
         public void Close()
         {
             context.Response.Close();
+        }
+    }
+
+    public class SocketHandler
+    {
+        public HttpListenerContext context { get; set; } = null;
+        public string path { get; set; } = "/";
+        public HttpServer server { get; set; } = null;
+        public bool closed { get; set; } = false;
+        public object customObject { get; set; } = null;
+        public WebSocket socket { get; set; } = null;
+        public WebsocketRoute route { get; set; } = null;
+
+        public SocketHandler(HttpListenerContext context, HttpServer server, WebsocketRoute route)
+        {
+            this.context = context;
+            this.path = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
+            this.server = server;
+            this.route = route;
+            try
+            {
+                socket = context.AcceptWebSocketAsync(null).Result.WebSocket;
+            }
+            catch (Exception e)
+            {
+                context.Response.StatusCode = 500;
+                context.Response.Close();
+                return;
+            }
+            Thread t = new Thread(() =>
+            {
+                while (!closed)
+                {
+                    byte[] buffer = new byte[4096];
+                    WebSocketReceiveResult result = socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None).Result;
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                    } else
+                    {
+                        buffer = buffer.TakeWhile((v, index) => buffer.Skip(index).Any(w => w != 0x00)).ToArray();
+                        SocketServerRequest socketRequest = new SocketServerRequest(context, server, this, result, buffer);
+                        route.action(socketRequest);
+                    }
+                }
+            });
+            t.Start();
+        }
+
+        public void CloseRequest()
+        {
+            closed = true;
+            socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+        }
+    }
+
+    public class SocketServerRequest
+    {
+        public HttpListenerContext context { get; set; } = null;
+        public string path { get; set; } = "/";
+        public HttpServer server { get; set; } = null;
+        public byte[] bodyBytes { get; set; } = new byte[0];
+        public string bodyString { get; set; } = "";
+        public object customObject { get; set; } = null;
+        public SocketHandler handler { get; set; } = null;
+        public WebSocketReceiveResult receiveResult { get; set; } = null;
+
+        public SocketServerRequest(HttpListenerContext context, HttpServer server, SocketHandler handler, WebSocketReceiveResult receiveResult, byte[] bytes)
+        {
+            this.context = context;
+            this.path = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
+            this.server = server;
+            this.handler = handler;
+            this.bodyString = Encoding.UTF8.GetString(bytes);
+            this.bodyBytes = bytes;
+            this.receiveResult = receiveResult;
+        }
+
+        public void SendString(string str, WebSocketMessageType msgType = WebSocketMessageType.Text, bool closeRequest = false)
+        {
+            SendData(Encoding.UTF8.GetBytes(str), msgType, closeRequest);
+        }
+
+        public void SendData(byte[] data, WebSocketMessageType msgType = WebSocketMessageType.Binary, bool closeRequest = false)
+        {
+            handler.socket.SendAsync(new ArraySegment<byte>(data, 0, data.Length), WebSocketMessageType.Text, receiveResult.EndOfMessage, CancellationToken.None);
+            if (closeRequest) Close();
+        }
+
+        public void Close()
+        {
+            handler.CloseRequest();
         }
     }
 }
