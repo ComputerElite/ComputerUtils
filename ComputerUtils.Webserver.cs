@@ -45,7 +45,7 @@ namespace ComputerUtils.Webserver
             }
             
             listener.Start();
-            Logger.Log("Http Server started");
+            Logger.Log("Server started");
             while(true)
             {
                 try
@@ -65,7 +65,7 @@ namespace ComputerUtils.Webserver
                     } else
                     {
                         ServerRequest request = new ServerRequest(context, this);
-                        Logger.Log(request.path);
+                        //Logger.Log(request.path);
                         if (!accessCheck(request))
                         {
                             if (!request.closed) request.Send403();
@@ -89,12 +89,18 @@ namespace ComputerUtils.Webserver
             routes.Add(new Route(method, path, action, onlyCheckBeginning, ignoreCase, ignoreEnd));
         }
 
+        public void RemoveRoute(string method, string path)
+        {
+            Route match = routes.FirstOrDefault(x => x.method == method && x.path == path);
+            if (match != null) routes.Remove(match);
+        }
+
         public void AddRouteFile(string path, string filePath, bool ignoreCase = true, bool ignoreEnd = true)
         {
             string contentType = GetContentTpe(filePath);
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
-                if (File.Exists(filePath)) ServerRequest.SendData(File.ReadAllBytes(filePath), contentType);
+                if (File.Exists(filePath)) ServerRequest.SendFile(filePath);
                 else ServerRequest.Send404();
                 return true;
             }), false, ignoreCase, ignoreEnd);
@@ -106,7 +112,7 @@ namespace ComputerUtils.Webserver
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
                 string file = folderPath + ServerRequest.path.Substring(path.Length + 1).Replace("/", "\\");
-                if (File.Exists(file)) ServerRequest.SendData(File.ReadAllBytes(file), GetContentTpe(file));
+                if (File.Exists(file)) ServerRequest.SendFile(file);
                 else ServerRequest.Send404();
                 return true;
             }), true, ignoreCase, ignoreEnd);
@@ -115,6 +121,12 @@ namespace ComputerUtils.Webserver
         public void AddWSRoute(string path, Action<SocketServerRequest> action, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true)
         {
             wsRoutes.Add(new WebsocketRoute("", action, onlyCheckBeginning, ignoreCase, ignoreEnd));
+        }
+
+        public void RemoveWSRoute(string method, string path)
+        {
+            Route match = routes.FirstOrDefault(x => x.method == method && x.path == path);
+            if (match != null) routes.Remove(match);
         }
 
         public void SetAccessCheck(Func<ServerRequest, bool> check)
@@ -327,6 +339,16 @@ namespace ComputerUtils.Webserver
             SendData(Encoding.UTF8.GetBytes(str), contentType, Encoding.UTF8, statusCode, closeRequest);
         }
 
+        public void SendFile(string file, string contentType = "", int statusCode = 200, bool closeRequest = true)
+        {
+            if(!File.Exists(file))
+            {
+                Send404();
+                return;
+            }
+            SendData(File.ReadAllBytes(file), contentType == "" ? HttpServer.GetContentTpe(file) : contentType, Encoding.UTF8, statusCode, closeRequest);
+        }
+
         public void SendData(byte[] data, string contentType = "text/html", int statusCode = 200, bool closeRequest = true)
         {
             SendData(data, contentType, Encoding.UTF8, statusCode, closeRequest);
@@ -338,6 +360,7 @@ namespace ComputerUtils.Webserver
             context.Response.ContentEncoding = contentEncoding;
             context.Response.ContentLength64 = data.LongLength;
             context.Response.StatusCode = statusCode;
+            context.Response.AddHeader("Access-Control-Allow-Origin", "*");
             context.Response.OutputStream.WriteAsync(data, 0, data.Length);
             if (closeRequest) Close();
             closed = closeRequest;

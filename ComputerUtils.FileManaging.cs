@@ -6,7 +6,7 @@ namespace ComputerUtils.FileManaging
 {
     public class FileManager
     {
-        public static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs)
+        public static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs, bool output = true)
         {
             // Get the subdirectories for the specified directory.
             try
@@ -35,7 +35,7 @@ namespace ComputerUtils.FileManaging
             {
                 try
                 {
-                    Console.WriteLine("Copying " + file.Name);
+                    if (output) Console.WriteLine("Copying " + file.Name);
                     Logger.Log("Copying " + file.Name);
                     string tempPath = System.IO.Path.Combine(destDirName, file.Name);
                     file.CopyTo(tempPath, true);
