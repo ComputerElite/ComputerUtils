@@ -2,6 +2,7 @@
 using ComputerUtils.VarUtils;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -353,6 +354,7 @@ namespace ComputerUtils.ConsoleUi
         {
             bool completed = false;
             bool success = false;
+            Logger.Log("Downloading " + Path.GetFileName(destination) + " from " + downloadLink + " to " + destination);
             Console.ForegroundColor = ConsoleColor.White;
             Console.Write("Downloading ");
             Console.ForegroundColor = ConsoleColor.Blue;

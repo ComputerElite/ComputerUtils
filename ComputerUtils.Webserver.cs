@@ -21,6 +21,7 @@ namespace ComputerUtils.Webserver
         public Func<ServerRequest, bool> accessCheck = new Func<ServerRequest, bool>(s => { return true; });
         public ServerValueObject notFoundPage = new ServerValueObject("404 Not found - The requested item couldn't be found", false, "text/plain", 404);
         public ServerValueObject accessDeniedPage = new ServerValueObject("403 Access denied - You do not have access to view this item", false, "text/plain", 403);
+        public Dictionary<string, string> defaultResponseHeaders = new Dictionary<string, string>() { { "Access-Control-Allow-Origin", "*" }, { "charset", "UTF-8" } };
         public void StartServer(int port, bool onlyLocal = true)
         {
             StartServer(new int[] { port }, onlyLocal);
@@ -42,10 +43,10 @@ namespace ComputerUtils.Webserver
                     Logger.Log("Added IP " + ip.ToString() + " to Prefixes");
                     listener.Prefixes.Add("http://" + ip.ToString() + ":" + port + "/");
                 }
+                Logger.Log("Server started on " + port);
             }
             
             listener.Start();
-            Logger.Log("Server started");
             while(true)
             {
                 try
@@ -53,6 +54,7 @@ namespace ComputerUtils.Webserver
                     HttpListenerContext context = listener.GetContextAsync().Result;
                     if (context.Request.IsWebSocketRequest)
                     {
+                        Logger.Log("Websocket connected from " + context.Request.RemoteEndPoint);
                         string uRL = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
                         for (int i = 0; i < wsRoutes.Count; i++)
                         {
@@ -65,7 +67,7 @@ namespace ComputerUtils.Webserver
                     } else
                     {
                         ServerRequest request = new ServerRequest(context, this);
-                        //Logger.Log(request.path);
+                        Logger.Log(request.ToString());
                         if (!accessCheck(request))
                         {
                             if (!request.closed) request.Send403();
@@ -82,6 +84,11 @@ namespace ComputerUtils.Webserver
                     Logger.Log("An error occured while handling a request:\n" + e.ToString(), LoggingType.Error);
                 }
             }
+        }
+
+        public void SetDefaultResponseHeaders(Dictionary<string, string> headers)
+        {
+            defaultResponseHeaders = headers;
         }
 
         public void AddRoute(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true)
@@ -109,9 +116,11 @@ namespace ComputerUtils.Webserver
         public void AddRouteFolderWithFiles(string path, string folderPath, bool ignoreCase = true, bool ignoreEnd = true)
         {
             if (!folderPath.EndsWith("\\") && folderPath.Length > 0) folderPath += "\\";
+            if (path.EndsWith("/")) path = path.Substring(0, path.Length - 1);
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
                 string file = folderPath + ServerRequest.path.Substring(path.Length + 1).Replace("/", "\\");
+                Logger.Log(file);
                 if (File.Exists(file)) ServerRequest.SendFile(file);
                 else ServerRequest.Send404();
                 return true;
@@ -324,6 +333,11 @@ namespace ComputerUtils.Webserver
             }
         }
 
+        public override string ToString()
+        {
+            return method + " " + path + " from " + context.Request.RemoteEndPoint + " with body: " + bodyString;
+        }
+
         public void Send404()
         {
             server.notFoundPage.DoRequest(this);
@@ -334,33 +348,40 @@ namespace ComputerUtils.Webserver
             server.accessDeniedPage.DoRequest(this);
         }
 
-        public void SendString(string str, string contentType = "text/plain", int statusCode = 200, bool closeRequest = true)
+        public void SendString(string str, string contentType = "text/plain", int statusCode = 200, bool closeRequest = true, Dictionary<string, string> headers = null)
         {
-            SendData(Encoding.UTF8.GetBytes(str), contentType, Encoding.UTF8, statusCode, closeRequest);
+            SendData(Encoding.UTF8.GetBytes(str), contentType, Encoding.UTF8, statusCode, closeRequest, headers);
         }
 
-        public void SendFile(string file, string contentType = "", int statusCode = 200, bool closeRequest = true)
+        public void SendFile(string file, string contentType = "", int statusCode = 200, bool closeRequest = true, Dictionary<string, string> headers = null)
         {
             if(!File.Exists(file))
             {
                 Send404();
                 return;
             }
-            SendData(File.ReadAllBytes(file), contentType == "" ? HttpServer.GetContentTpe(file) : contentType, Encoding.UTF8, statusCode, closeRequest);
+            SendData(File.ReadAllBytes(file), contentType == "" ? HttpServer.GetContentTpe(file) : contentType, Encoding.UTF8, statusCode, closeRequest, headers);
         }
 
-        public void SendData(byte[] data, string contentType = "text/html", int statusCode = 200, bool closeRequest = true)
+        public void SendData(byte[] data, string contentType = "text/html", int statusCode = 200, bool closeRequest = true, Dictionary<string, string> headers = null)
         {
-            SendData(data, contentType, Encoding.UTF8, statusCode, closeRequest);
+            SendData(data, contentType, Encoding.UTF8, statusCode, closeRequest, headers);
         }
 
-        public void SendData(byte[] data, string contentType, Encoding contentEncoding, int statusCode, bool closeRequest)
+        public void SendData(byte[] data, string contentType, Encoding contentEncoding, int statusCode, bool closeRequest, Dictionary<string, string> headers = null)
         {
             context.Response.ContentType = contentType;
             context.Response.ContentEncoding = contentEncoding;
             context.Response.ContentLength64 = data.LongLength;
             context.Response.StatusCode = statusCode;
-            context.Response.AddHeader("Access-Control-Allow-Origin", "*");
+            if(server.defaultResponseHeaders != null)
+            {
+                foreach (KeyValuePair<string, string> header in server.defaultResponseHeaders) context.Response.Headers[header.Key] = header.Value;
+            }
+            if(headers != null)
+            {
+                foreach (KeyValuePair<string, string> header in headers) context.Response.Headers[header.Key] = header.Value;
+            }
             context.Response.OutputStream.WriteAsync(data, 0, data.Length);
             if (closeRequest) Close();
             closed = closeRequest;
@@ -406,11 +427,13 @@ namespace ComputerUtils.Webserver
                     WebSocketReceiveResult result = socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None).Result;
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
+                        Logger.Log("Websocket closed by client: " + context.Request.RemoteEndPoint);
                         socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
                     } else
                     {
                         buffer = buffer.TakeWhile((v, index) => buffer.Skip(index).Any(w => w != 0x00)).ToArray();
                         SocketServerRequest socketRequest = new SocketServerRequest(context, server, this, result, buffer);
+                        Logger.Log("Websocket from " + context.Request.RemoteEndPoint + " sent " + socketRequest.bodyString);
                         route.action(socketRequest);
                     }
                 }
@@ -421,6 +444,7 @@ namespace ComputerUtils.Webserver
         public void CloseRequest()
         {
             closed = true;
+            Logger.Log("Websocket closed by server from " + context.Request.RemoteEndPoint);
             socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
         }
     }
