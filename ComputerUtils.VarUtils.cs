@@ -49,6 +49,23 @@ namespace ComputerUtils.VarUtils
         }
     }
 
+    public class StringUtils
+    {
+        public static int GetStringLines(string i)
+        {
+            return i.Split('\n').Length;
+        }
+        public static int GetStringMaxLineLength(string i)
+        {
+            int max = 0;
+            foreach(string s in i.Split('\n'))
+            {
+                if (s.Length > max) max = s.Length;
+            }
+            return max;
+        }
+    }
+
     public class SizeConverter
     {
         public string ByteSizeToString(long input, int decimals = 2)

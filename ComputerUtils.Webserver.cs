@@ -327,8 +327,8 @@ namespace ComputerUtils.Webserver
             this.server = server;
             if(context.Request.HasEntityBody && context.Request.InputStream != Stream.Null)
             {
-                bodyString = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding).ReadToEnd();
-                bodyBytes = context.Request.ContentEncoding.GetBytes(bodyString);
+                bodyString = new StreamReader(context.Request.InputStream, Encoding.UTF8).ReadToEnd();
+                bodyBytes = Encoding.UTF8.GetBytes(bodyString);
                 this.requestBodyContentType = context.Request.ContentType;
             }
         }

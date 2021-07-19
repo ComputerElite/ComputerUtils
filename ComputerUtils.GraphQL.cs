@@ -10,7 +10,7 @@ namespace ComputerUtils.GraphQL
     {
         public string uri { get; set; } = "";
         public GraphQLOptions options { get; set; } = new GraphQLOptions();
-        public const string oculusUri = "https://cors-anywhere-computerelite.herokuapp.com/https://graph.oculus.com/graphql";
+        public const string oculusUri = "https://graph.oculus.com/graphql";
         public const string oculusStoreToken = "OC|752908224809889|";
 
         public GraphQLClient(string uri, GraphQLOptions options)
@@ -29,7 +29,7 @@ namespace ComputerUtils.GraphQL
         public string Request(GraphQLOptions options)
         {
             WebClient c = new WebClient();
-            c.Headers.Add("x-requested-with", "RiftDowngrader");
+            //c.Headers.Add("x-requested-with", "RiftDowngrader");
             Logger.Log("Doing POST Request to " + uri + " with args " + options.ToString());
             try
             {
@@ -49,7 +49,7 @@ namespace ComputerUtils.GraphQL
         public string Request(bool asBody = false, Dictionary<string, string> customHeaders = null)
         {
             WebClient c = new WebClient();
-            c.Headers.Add("x-requested-with", "RiftDowngrader");
+            //c.Headers.Add("x-requested-with", "RiftDowngrader");
             if(customHeaders != null)
             {
                 foreach (KeyValuePair<string, string> header in customHeaders)
