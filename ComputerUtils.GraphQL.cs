@@ -11,7 +11,7 @@ namespace ComputerUtils.GraphQL
         public string uri { get; set; } = "";
         public GraphQLOptions options { get; set; } = new GraphQLOptions();
         public const string oculusUri = "https://graph.oculus.com/graphql";
-        public const string oculusStoreToken = "OC|752908224809889|";
+        public static string oculusStoreToken = "OC|752908224809889|";
 
         public GraphQLClient(string uri, GraphQLOptions options)
         {
@@ -30,7 +30,7 @@ namespace ComputerUtils.GraphQL
         {
             WebClient c = new WebClient();
             //c.Headers.Add("x-requested-with", "RiftDowngrader");
-            Logger.Log("Doing POST Request to " + uri + " with args " + options.ToString());
+            Logger.Log("Doing POST Request to " + uri + " with args " + options.ToLoggingString());
             try
             {
                 string returning = c.UploadString(uri, "POST", options.ToString());
@@ -57,7 +57,7 @@ namespace ComputerUtils.GraphQL
                     c.Headers.Add(header.Key, header.Value);
                 }
             }
-            Logger.Log("Doing POST Request to " + uri + " with args " + options.ToString());
+            Logger.Log("Doing POST Request to " + uri + " with args " + options.ToLoggingString());
             try
             {
                 if(asBody)
@@ -80,6 +80,14 @@ namespace ComputerUtils.GraphQL
             GraphQLClient c = OculusTemplate();
             c.options.doc_id = "1586217024733717";
             c.options.variables = "{\"id\":\"" + appid + "\"}";
+            return c;
+        }
+
+        public static GraphQLClient Section(Headset headset)
+        {
+            GraphQLClient c = OculusTemplate();
+            c.options.doc_id = "3821696797949516";
+            c.options.variables = "{\"sectionId\":\"1888816384764129\",\"sortOrder\":null,\"sectionItemCount\":500,\"sectionCursor\":null,\"hmdType\":\"" + Enum.GetName(typeof(Headset), headset) + "\"}";
             return c;
         }
 
@@ -142,6 +150,11 @@ namespace ComputerUtils.GraphQL
         public override string ToString()
         {
             return "access_token=" + access_token + "&variables=" + variables + "&doc_id=" + doc_id;
+        }
+
+        public string ToLoggingString()
+        {
+            return "access_token=aSecret:)&variables=" + variables + "&doc_id=" + doc_id;
         }
     }
 

@@ -296,6 +296,8 @@ namespace ComputerUtils.ConsoleUi
     {
         public int ProgressbarLength = 30;
         public double UpdateRate = 0.5;
+        public long done = 0;
+        public long total = 0;
 
         public void Start()
         {
@@ -309,6 +311,8 @@ namespace ComputerUtils.ConsoleUi
 
         public void UpdateProgress(long done, long total, string doneText = "", string totalText = "", string extraText = "")
         {
+            this.done = done;
+            this.total = total;
             ClearCurrentLine();
             double percentage = done / (double)total;
             Console.SetCursorPosition(2, currentLine);
