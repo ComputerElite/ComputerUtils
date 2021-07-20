@@ -83,11 +83,11 @@ namespace ComputerUtils.GraphQL
             return c;
         }
 
-        public static GraphQLClient Section(Headset headset)
+        public static GraphQLClient AllApps(Headset headset)
         {
             GraphQLClient c = OculusTemplate();
             c.options.doc_id = "3821696797949516";
-            c.options.variables = "{\"sectionId\":\"1888816384764129\",\"sortOrder\":null,\"sectionItemCount\":500,\"sectionCursor\":null,\"hmdType\":\"" + Enum.GetName(typeof(Headset), headset) + "\"}";
+            c.options.variables = "{\"sectionId\":\"" + (headset == Headset.MONTEREY ? "1888816384764129" : "1736210353282450") + "\",\"sortOrder\":null,\"sectionItemCount\":500,\"sectionCursor\":null,\"hmdType\":\"" + Enum.GetName(typeof(Headset), headset) + "\"}";
             return c;
         }
 

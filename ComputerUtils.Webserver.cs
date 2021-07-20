@@ -318,17 +318,19 @@ namespace ComputerUtils.Webserver
         public string bodyString { get; set; } = "";
         public string requestBodyContentType { get; set; } = "";
         public object customObject { get; set; } = null;
+        public CookieCollection cookies { get; set; } = null;
 
         public ServerRequest(HttpListenerContext context, HttpServer server)
         {
             this.context = context;
+            this.cookies = context.Request.Cookies;
             this.path = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
             this.method = context.Request.HttpMethod;
             this.server = server;
             if(context.Request.HasEntityBody && context.Request.InputStream != Stream.Null)
             {
-                bodyString = new StreamReader(context.Request.InputStream, Encoding.UTF8).ReadToEnd();
-                bodyBytes = Encoding.UTF8.GetBytes(bodyString);
+                bodyString = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding).ReadToEnd();
+                bodyBytes = context.Request.ContentEncoding.GetBytes(bodyString);
                 this.requestBodyContentType = context.Request.ContentType;
             }
         }
@@ -382,6 +384,7 @@ namespace ComputerUtils.Webserver
             {
                 foreach (KeyValuePair<string, string> header in headers) context.Response.Headers[header.Key] = header.Value;
             }
+            Logger.Log("Sending " + data.LongLength + " bytes of data to " + context.Request.RemoteEndPoint + " from " + path);
             context.Response.OutputStream.WriteAsync(data, 0, data.Length);
             if (closeRequest) Close();
             closed = closeRequest;
@@ -478,6 +481,7 @@ namespace ComputerUtils.Webserver
 
         public void SendData(byte[] data, WebSocketMessageType msgType = WebSocketMessageType.Binary, bool closeRequest = false)
         {
+            Logger.Log("Sending " + data.LongLength + " bytes of data to " + context.Request.RemoteEndPoint + " via websocket at " + path);
             handler.socket.SendAsync(new ArraySegment<byte>(data, 0, data.Length), WebSocketMessageType.Text, receiveResult.EndOfMessage, CancellationToken.None);
             if (closeRequest) Close();
         }
