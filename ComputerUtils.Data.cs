@@ -11,6 +11,11 @@ namespace ComputerUtils.Data
 
         }
 
+        public void AddBlankLineToEachColumn()
+        {
+            for (int i = 0; i < colums.Count; i++) colums[i].entries.Add("");
+        }
+
         public int getMaxColumnEntries()
         {
             int max = 0;

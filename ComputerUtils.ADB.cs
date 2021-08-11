@@ -12,6 +12,18 @@ namespace ComputerUtils.ADB
     {
         public List<string> ADBPaths { get; set; } = new List<string>() { "adb.exe", "User\\Android\\platform-tools_r29.0.4-windows\\platform-tools\\adb.exe", "User\\AppData\\Roaming\\SideQuest\\platform-tools\\adb.exe", "C:\\Program Files\\SideQuest\\resources\\app.asar.unpacked\\build\\platform-tools\\adb.exe" };
 
+        public bool Pull(string source, string destination)
+        {
+            return adb("pull \"" + source + "\" \"" + destination + "\"");
+        }
+        public bool Push(string source, string destination)
+        {
+            return adb("push \"" + source + "\" \"" + destination + "\"");
+        }
+        public bool StopApp(string appid)
+        {
+            return adb("shell am force-stop " + appid);
+        }
         public bool adb(String Argument)
         {
             return adbThreadHandler(Argument).Result;

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ComputerUtils.RegexStuff;
+using System;
 using System.IO;
 using System.Text.RegularExpressions;
 
@@ -8,11 +9,12 @@ namespace ComputerUtils.Logging {
         public static string logFile { get; set; } = "";
         public static bool removeUsernamesFromLog { get; set; } = true;
         public static bool displayLogInConsole { get; set; } = false;
+        public static bool longLogInConsole { get; set; } = true;
 
         public static void Log(string text, LoggingType loggingType = LoggingType.Info)
         {
             //Remove username
-            if (removeUsernamesFromLog) text = Regex.Replace(text, @"([A-Z]{1}\:\\[Uu]sers\\)([^\\]*\\)(.*)", "$1$3");
+            if (removeUsernamesFromLog) text = RegexTemplates.RemoveUserName(text);
             string linePrefix = GetLinePrefix(loggingType);
             text = linePrefix + text.Replace("\n", "\n" + linePrefix);
             if (displayLogInConsole)
@@ -35,7 +37,7 @@ namespace ComputerUtils.Logging {
                         Console.ForegroundColor = ConsoleColor.DarkYellow;
                         break;
                 }
-                Console.WriteLine(text);
+                Console.WriteLine(longLogInConsole ? text : text.Replace(linePrefix, ""));
                 Console.ForegroundColor = ConsoleColor.White;
             }
             if (logFile == "") return;

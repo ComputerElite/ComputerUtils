@@ -92,7 +92,8 @@
     <Compile Include="ComputerUtils.FileManaging.cs" />
     <Compile Include="ComputerUtils.GraphQL.cs" />
     <Compile Include="ComputerUtils.RandomExtensions.cs" />
-    <Compile Include="ComputerUtils.RegexTemplates.cs" />
+    <Compile Include="ComputerUtils.RegexStuff.cs" />
+    <Compile Include="ComputerUtils.StringFormatters.cs" />
     <Compile Include="ComputerUtils.Updating.cs" />
     <Compile Include="ComputerUtils.VarUtils.cs" />
     <Compile Include="ComputerUtils.Webserver.cs" />

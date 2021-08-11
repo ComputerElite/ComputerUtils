@@ -22,26 +22,50 @@ namespace ComputerUtils.Webserver
         public ServerValueObject notFoundPage = new ServerValueObject("404 Not found - The requested item couldn't be found", false, "text/plain", 404);
         public ServerValueObject accessDeniedPage = new ServerValueObject("403 Access denied - You do not have access to view this item", false, "text/plain", 403);
         public Dictionary<string, string> defaultResponseHeaders = new Dictionary<string, string>() { { "Access-Control-Allow-Origin", "*" }, { "charset", "UTF-8" } };
-        public void StartServer(int port, bool onlyLocal = true)
+        public void StartServer(int port, bool setupHttps = false, string[] otherPrefixes = null, bool onlyLocal = true)
         {
-            StartServer(new int[] { port }, onlyLocal);
+            StartServer(new int[] { port }, setupHttps, otherPrefixes, onlyLocal);
         }
 
-        public void StartServer(int[] ports, bool onlyLocal = true)
+        public void StartServer(int[] ports, bool setupHttps = false, string[] otherPrefixes = null, bool onlyLocal = true)
         {
             Logger.displayLogInConsole = true;
             HttpListener listener = new HttpListener();
             String hostName = Dns.GetHostName();
             Logger.Log("Host name: " + hostName);
             IPHostEntry host = Dns.GetHostEntry(hostName);
+            if(otherPrefixes != null)
+            {
+                foreach(string p in otherPrefixes)
+                {
+                    listener.Prefixes.Add(p);
+                    Logger.Log("Server listening on on " + p);
+                    foreach (int port in ports)
+                    {
+                        listener.Prefixes.Add(p + ":" + port + "/");
+                        Logger.Log("Server listening on on " + p + ":" + port);
+                    }
+                }
+            }
             foreach(int port in ports)
             {
                 listener.Prefixes.Add("http://127.0.0.1:" + port + "/");
+                Logger.Log("Server listening on on http://127.0.0.1:" + port);
+                if (setupHttps)
+                {
+                    listener.Prefixes.Add("https://127.0.0.1:" + port + "/");
+                    Logger.Log("Server listening on on https://127.0.0.1:" + port);
+                }
                 foreach (IPAddress ip in host.AddressList)
                 {
                     if (onlyLocal && ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) continue;
-                    Logger.Log("Added IP " + ip.ToString() + " to Prefixes");
                     listener.Prefixes.Add("http://" + ip.ToString() + ":" + port + "/");
+                    Logger.Log("Server listening on on http://" + ip.ToString() + ":" + port);
+                    if (setupHttps)
+                    {
+                        listener.Prefixes.Add("https://" + ip.ToString() + ":" + port + "/");
+                        Logger.Log("Server listening on on https://" + ip.ToString() + ":" + port);
+                    }
                 }
                 Logger.Log("Server started on " + port);
             }
@@ -52,33 +76,44 @@ namespace ComputerUtils.Webserver
                 try
                 {
                     HttpListenerContext context = listener.GetContextAsync().Result;
-                    if (context.Request.IsWebSocketRequest)
+                    Thread t = new Thread(() =>
                     {
-                        Logger.Log("Websocket connected from " + context.Request.RemoteEndPoint);
-                        string uRL = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
-                        for (int i = 0; i < wsRoutes.Count; i++)
+                        try
                         {
-                            if (wsRoutes[i].UseRoute(uRL))
+                            if (context.Request.IsWebSocketRequest)
                             {
-                                SocketHandler handler = new SocketHandler(context, this, wsRoutes[i]);
-                                break;
+                                Logger.Log("Websocket connected from " + context.Request.RemoteEndPoint);
+                                string uRL = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
+                                for (int i = 0; i < wsRoutes.Count; i++)
+                                {
+                                    if (wsRoutes[i].UseRoute(uRL))
+                                    {
+                                        SocketHandler handler = new SocketHandler(context, this, wsRoutes[i]);
+                                        break;
+                                    }
+                                }
                             }
-                        }
-                    } else
-                    {
-                        ServerRequest request = new ServerRequest(context, this);
-                        Logger.Log(request.ToString());
-                        if (!accessCheck(request))
+                            else
+                            {
+                                ServerRequest request = new ServerRequest(context, this);
+                                Logger.Log(request.ToString());
+                                if (!accessCheck(request))
+                                {
+                                    if (!request.closed) request.Send403();
+                                    return;
+                                }
+                                for (int i = 0; i < routes.Count; i++)
+                                {
+                                    if (routes[i].UseRoute(request)) break;
+                                }
+                                if (!request.closed) request.Send404();
+                            }
+                        } catch (Exception e)
                         {
-                            if (!request.closed) request.Send403();
-                            continue;
+                            Logger.Log("An error occured while handling a request:\n" + e.ToString(), LoggingType.Error);
                         }
-                        for (int i = 0; i < routes.Count; i++)
-                        {
-                            if (routes[i].UseRoute(request)) break;
-                        }
-                        if (!request.closed) request.Send404();
-                    }
+                    });
+                    t.Start();
                 } catch (Exception e)
                 {
                     Logger.Log("An error occured while handling a request:\n" + e.ToString(), LoggingType.Error);
@@ -107,8 +142,17 @@ namespace ComputerUtils.Webserver
             string contentType = GetContentTpe(filePath);
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
-                if (File.Exists(filePath)) ServerRequest.SendFile(filePath);
-                else ServerRequest.Send404();
+                ServerRequest.SendFile(filePath);
+                return true;
+            }), false, ignoreCase, ignoreEnd);
+        }
+
+        public void AddRouteFile(string path, string filePath, Dictionary<string, string> replace, bool ignoreCase = true, bool ignoreEnd = true)
+        {
+            string contentType = GetContentTpe(filePath);
+            AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
+            {
+                ServerRequest.SendFile(filePath, replace);
                 return true;
             }), false, ignoreCase, ignoreEnd);
         }
@@ -120,7 +164,7 @@ namespace ComputerUtils.Webserver
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
                 string file = folderPath + ServerRequest.path.Substring(path.Length + 1).Replace("/", "\\");
-                Logger.Log(file);
+                //Logger.Log(file);
                 if (File.Exists(file)) ServerRequest.SendFile(file);
                 else ServerRequest.Send404();
                 return true;
@@ -175,6 +219,8 @@ namespace ComputerUtils.Webserver
                     return "image/gif";
                 case ".jpg":
                     return "image/jpeg";
+                case ".svg":
+                    return "image/svg+xml";
                 case ".mp4":
                     return "video/mp4";
                 case ".js":
@@ -365,6 +411,18 @@ namespace ComputerUtils.Webserver
             SendData(File.ReadAllBytes(file), contentType == "" ? HttpServer.GetContentTpe(file) : contentType, Encoding.UTF8, statusCode, closeRequest, headers);
         }
 
+        public void SendFile(string file, Dictionary<string, string> replace, string contentType = "", int statusCode = 200, bool closeRequest = true, Dictionary<string, string> headers = null)
+        {
+            if (!File.Exists(file))
+            {
+                Send404();
+                return;
+            }
+            string toSend = File.ReadAllText(file);
+            foreach (KeyValuePair<string, string> key in replace) toSend = toSend.Replace(key.Key, key.Value);
+            SendString(toSend, contentType == "" ? HttpServer.GetContentTpe(file) : contentType, statusCode, closeRequest, headers);
+        }
+
         public void SendData(byte[] data, string contentType = "text/html", int statusCode = 200, bool closeRequest = true, Dictionary<string, string> headers = null)
         {
             SendData(data, contentType, Encoding.UTF8, statusCode, closeRequest, headers);
@@ -384,7 +442,7 @@ namespace ComputerUtils.Webserver
             {
                 foreach (KeyValuePair<string, string> header in headers) context.Response.Headers[header.Key] = header.Value;
             }
-            Logger.Log("Sending " + data.LongLength + " bytes of data to " + context.Request.RemoteEndPoint + " from " + path);
+            Logger.Log("    Sending " + data.LongLength + " bytes of data to " + context.Request.RemoteEndPoint + " from " + path);
             context.Response.OutputStream.WriteAsync(data, 0, data.Length);
             if (closeRequest) Close();
             closed = closeRequest;
@@ -481,7 +539,7 @@ namespace ComputerUtils.Webserver
 
         public void SendData(byte[] data, WebSocketMessageType msgType = WebSocketMessageType.Binary, bool closeRequest = false)
         {
-            Logger.Log("Sending " + data.LongLength + " bytes of data to " + context.Request.RemoteEndPoint + " via websocket at " + path);
+            Logger.Log("    Sending " + data.LongLength + " bytes of data to " + context.Request.RemoteEndPoint + " via websocket at " + path);
             handler.socket.SendAsync(new ArraySegment<byte>(data, 0, data.Length), WebSocketMessageType.Text, receiveResult.EndOfMessage, CancellationToken.None);
             if (closeRequest) Close();
         }

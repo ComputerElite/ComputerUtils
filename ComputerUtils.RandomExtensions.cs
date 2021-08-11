@@ -6,6 +6,7 @@ namespace ComputerUtils.RandomExtensions
     public class RandomExtension
     {
         public static Random random = new Random();
+        public static string tokenChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890_-";
 
         public bool NextBool()
         {
@@ -20,6 +21,13 @@ namespace ComputerUtils.RandomExtensions
         public static String Pick(String[] array)
         {
             return array[random.Next(array.Length)];
+        }
+
+        public static string CreateToken(int length = 100)
+        {
+            string token = "";
+            for (int i = 0; i < length; i++) token += tokenChars[random.Next(tokenChars.Length)];
+            return token;
         }
     }
 

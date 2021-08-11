@@ -54,16 +54,17 @@ namespace ComputerUtils.FileManaging
             }
         }
 
-        public static void CreateDirectoryIfNotExisting(string path)
+        public static DirectoryInfo CreateDirectoryIfNotExisting(string path)
         {
             if (!Directory.Exists(path))
             {
                 Logger.Log("Creating " + path);
                 Directory.CreateDirectory(path);
             }
+            return new DirectoryInfo(path);
         }
 
-        public static void RecreateDirectoryIfExisting(string path)
+        public static DirectoryInfo RecreateDirectoryIfExisting(string path)
         {
             
             if (Directory.Exists(path))
@@ -74,6 +75,7 @@ namespace ComputerUtils.FileManaging
             }
             Logger.Log("Creating " + path);
             Directory.CreateDirectory(path);
+            return new DirectoryInfo(path);
         }
 
         public static void SetAttributesNormal(DirectoryInfo dir)

@@ -34,7 +34,7 @@ namespace ComputerUtils.Updating
             UpdateEntry latest = GetLatestVersion();
             if (latest.comparedToCurrentVersion == 1)
             {
-                Logger.Log("Update available");
+                Logger.Log("Update available: " + version + " -> " + latest.Version);
                 Console.WriteLine("New update availabel! Current version: " + version + ", latest version: " + latest.Version);
                 return true;
             }
@@ -45,7 +45,7 @@ namespace ComputerUtils.Updating
             }
             else if (latest.comparedToCurrentVersion == -1)
             {
-                Logger.Log("User on preview version");
+                Logger.Log("User on preview version: " + version + " Latest stable: " + latest.Version);
                 Console.WriteLine("Have fun on a preview version (" + version + "). You can downgrade to the latest stable release (" + latest.Version + ") by pressing enter.");
                 return true;
             }
