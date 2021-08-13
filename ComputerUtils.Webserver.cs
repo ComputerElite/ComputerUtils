@@ -1,6 +1,7 @@
 ﻿using ComputerUtils.Logging;
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -365,6 +366,7 @@ namespace ComputerUtils.Webserver
         public string requestBodyContentType { get; set; } = "";
         public object customObject { get; set; } = null;
         public CookieCollection cookies { get; set; } = null;
+        public NameValueCollection queryString { get; set; } = null;
 
         public ServerRequest(HttpListenerContext context, HttpServer server)
         {
@@ -373,6 +375,7 @@ namespace ComputerUtils.Webserver
             this.path = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
             this.method = context.Request.HttpMethod;
             this.server = server;
+            this.queryString = context.Request.QueryString;
             if(context.Request.HasEntityBody && context.Request.InputStream != Stream.Null)
             {
                 bodyString = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding).ReadToEnd();
@@ -423,6 +426,12 @@ namespace ComputerUtils.Webserver
             SendString(toSend, contentType == "" ? HttpServer.GetContentTpe(file) : contentType, statusCode, closeRequest, headers);
         }
 
+        public void Redirect(string target)
+        {
+            context.Response.Redirect(target);
+            Logger.Log("    Redirecting " + context.Request.RemoteEndPoint + " to " + target + " from " + path);
+        }
+
         public void SendData(byte[] data, string contentType = "text/html", int statusCode = 200, bool closeRequest = true, Dictionary<string, string> headers = null)
         {
             SendData(data, contentType, Encoding.UTF8, statusCode, closeRequest, headers);
@@ -430,7 +439,7 @@ namespace ComputerUtils.Webserver
 
         public void SendData(byte[] data, string contentType, Encoding contentEncoding, int statusCode, bool closeRequest, Dictionary<string, string> headers = null)
         {
-            context.Response.ContentType = contentType;
+            if(contentType != "") context.Response.ContentType = contentType;
             context.Response.ContentEncoding = contentEncoding;
             context.Response.ContentLength64 = data.LongLength;
             context.Response.StatusCode = statusCode;

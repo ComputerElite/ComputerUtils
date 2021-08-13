@@ -91,4 +91,21 @@ namespace ComputerUtils.VarUtils
             return seconds.ToString() + " S";
         }
     }
+
+    public class TimeConverter
+    {
+        public static DateTime UnixTimeStampToDateTime(long unixTimeStamp)
+        {
+            DateTime dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+            dateTime = dateTime.AddSeconds(unixTimeStamp);
+            return dateTime;
+        }
+
+        public static DateTime JavaTimeStampToDateTime(long unixTimeStamp)
+        {
+            DateTime dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+            dateTime = dateTime.AddMilliseconds(unixTimeStamp);
+            return dateTime;
+        }
+    }
 }
