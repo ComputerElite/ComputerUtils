@@ -23,6 +23,12 @@ namespace ComputerUtils.Webserver
         public ServerValueObject notFoundPage = new ServerValueObject("404 Not found - The requested item couldn't be found", false, "text/plain", 404);
         public ServerValueObject accessDeniedPage = new ServerValueObject("403 Access denied - You do not have access to view this item", false, "text/plain", 403);
         public Dictionary<string, string> defaultResponseHeaders = new Dictionary<string, string>() { { "Access-Control-Allow-Origin", "*" }, { "charset", "UTF-8" } };
+        public int[] ports = new int[0];
+        public bool setupHttps = false;
+        public string[] otherPrefixes = new string[0];
+        public bool onlyLocal = true;
+        public Thread serverThread = null;
+        
         public void StartServer(int port, bool setupHttps = false, string[] otherPrefixes = null, bool onlyLocal = true)
         {
             StartServer(new int[] { port }, setupHttps, otherPrefixes, onlyLocal);
@@ -31,95 +37,109 @@ namespace ComputerUtils.Webserver
         public void StartServer(int[] ports, bool setupHttps = false, string[] otherPrefixes = null, bool onlyLocal = true)
         {
             Logger.displayLogInConsole = true;
+            this.ports = ports;
+            this.setupHttps = setupHttps;
+            this.otherPrefixes = otherPrefixes == null ? new string[0] : otherPrefixes;
+            this.onlyLocal = onlyLocal;
             HttpListener listener = new HttpListener();
             String hostName = Dns.GetHostName();
             Logger.Log("Host name: " + hostName);
-            IPHostEntry host = Dns.GetHostEntry(hostName);
-            if(otherPrefixes != null)
+            foreach(string prefix in GetPrefixes())
             {
-                foreach(string p in otherPrefixes)
+                listener.Prefixes.Add(prefix);
+                Logger.Log("Server listening on " + prefix);
+            }
+            
+            serverThread = new Thread(() =>
+            {
+                listener.Start();
+                while (true)
                 {
-                    listener.Prefixes.Add(p);
-                    Logger.Log("Server listening on on " + p);
+                    try
+                    {
+                        HttpListenerContext context = listener.GetContextAsync().Result;
+                        Thread t = new Thread(() =>
+                        {
+                            try
+                            {
+                                if (context.Request.IsWebSocketRequest)
+                                {
+                                    Logger.Log("Websocket connected from " + context.Request.RemoteEndPoint);
+                                    string uRL = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
+                                    for (int i = 0; i < wsRoutes.Count; i++)
+                                    {
+                                        if (wsRoutes[i].UseRoute(uRL))
+                                        {
+                                            SocketHandler handler = new SocketHandler(context, this, wsRoutes[i]);
+                                            break;
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    ServerRequest request = new ServerRequest(context, this);
+                                    Logger.Log(request.ToString());
+                                    if (!accessCheck(request))
+                                    {
+                                        if (!request.closed) request.Send403();
+                                        return;
+                                    }
+                                    for (int i = 0; i < routes.Count; i++)
+                                    {
+                                        if (routes[i].UseRoute(request)) break;
+                                    }
+                                    if (!request.closed) request.Send404();
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                Logger.Log("An error occured while handling a request:\n" + e.ToString(), LoggingType.Error);
+                            }
+                        });
+                        t.Start();
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Log("An error occured while handling a request:\n" + e.ToString(), LoggingType.Error);
+                    }
+                }
+            });
+            serverThread.Start();
+        }
+
+        public List<string> GetPrefixes()
+        {
+            List<string> prefixes = new List<string>();
+            IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
+            if (otherPrefixes != null)
+            {
+                foreach (string p in otherPrefixes)
+                {
+                    prefixes.Add(p);
                     foreach (int port in ports)
                     {
-                        listener.Prefixes.Add(p + ":" + port + "/");
-                        Logger.Log("Server listening on on " + p + ":" + port);
+                        prefixes.Add(p + ":" + port + "/");
                     }
                 }
             }
-            foreach(int port in ports)
+            foreach (int port in ports)
             {
-                listener.Prefixes.Add("http://127.0.0.1:" + port + "/");
-                Logger.Log("Server listening on on http://127.0.0.1:" + port);
+                prefixes.Add("http://127.0.0.1:" + port + "/");
                 if (setupHttps)
                 {
-                    listener.Prefixes.Add("https://127.0.0.1:" + port + "/");
-                    Logger.Log("Server listening on on https://127.0.0.1:" + port);
+                    prefixes.Add("https://127.0.0.1:" + port + "/");
                 }
                 foreach (IPAddress ip in host.AddressList)
                 {
                     if (onlyLocal && ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) continue;
-                    listener.Prefixes.Add("http://" + ip.ToString() + ":" + port + "/");
-                    Logger.Log("Server listening on on http://" + ip.ToString() + ":" + port);
+                    prefixes.Add("http://" + ip.ToString() + ":" + port + "/");
                     if (setupHttps)
                     {
-                        listener.Prefixes.Add("https://" + ip.ToString() + ":" + port + "/");
-                        Logger.Log("Server listening on on https://" + ip.ToString() + ":" + port);
+                        prefixes.Add("https://" + ip.ToString() + ":" + port + "/");
                     }
                 }
-                Logger.Log("Server started on " + port);
             }
-            
-            listener.Start();
-            while(true)
-            {
-                try
-                {
-                    HttpListenerContext context = listener.GetContextAsync().Result;
-                    Thread t = new Thread(() =>
-                    {
-                        try
-                        {
-                            if (context.Request.IsWebSocketRequest)
-                            {
-                                Logger.Log("Websocket connected from " + context.Request.RemoteEndPoint);
-                                string uRL = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
-                                for (int i = 0; i < wsRoutes.Count; i++)
-                                {
-                                    if (wsRoutes[i].UseRoute(uRL))
-                                    {
-                                        SocketHandler handler = new SocketHandler(context, this, wsRoutes[i]);
-                                        break;
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                ServerRequest request = new ServerRequest(context, this);
-                                Logger.Log(request.ToString());
-                                if (!accessCheck(request))
-                                {
-                                    if (!request.closed) request.Send403();
-                                    return;
-                                }
-                                for (int i = 0; i < routes.Count; i++)
-                                {
-                                    if (routes[i].UseRoute(request)) break;
-                                }
-                                if (!request.closed) request.Send404();
-                            }
-                        } catch (Exception e)
-                        {
-                            Logger.Log("An error occured while handling a request:\n" + e.ToString(), LoggingType.Error);
-                        }
-                    });
-                    t.Start();
-                } catch (Exception e)
-                {
-                    Logger.Log("An error occured while handling a request:\n" + e.ToString(), LoggingType.Error);
-                }
-            }
+            return prefixes;
         }
 
         public void SetDefaultResponseHeaders(Dictionary<string, string> headers)

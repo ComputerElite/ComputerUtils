@@ -107,5 +107,15 @@ namespace ComputerUtils.VarUtils
             dateTime = dateTime.AddMilliseconds(unixTimeStamp);
             return dateTime;
         }
+
+        public static long DateTimeToUnixTimestamp(DateTime dateTime)
+        {
+            return ((DateTimeOffset)dateTime).ToUnixTimeSeconds();
+        }
+
+        public static long DateTimeToJavaTimestamp(DateTime dateTime)
+        {
+            return ((DateTimeOffset)dateTime).ToUnixTimeMilliseconds();
+        }
     }
 }

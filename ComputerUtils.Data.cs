@@ -26,6 +26,29 @@ namespace ComputerUtils.Data
             return max;
         }
 
+        public string ToStringNoLines()
+        {
+            string finished = "";
+            for (int i = 0; i < 2; i++)
+            {
+                foreach (Column c in colums)
+                {
+                    finished += i == 0 ? c.header.PadRight(c.getColumnWidth()) + " " : new string('-', c.getColumnWidth());
+                }
+                finished += "\n";
+            }
+            for (int i = 0; i < getMaxColumnEntries(); i++)
+            {
+                foreach (Column c in colums)
+                {
+                    finished += c.GetString(i).PadRight(c.getColumnWidth()) + " ";
+                }
+                finished += "\n";
+            }
+            if (finished.EndsWith("\n")) finished = finished.Substring(0, finished.Length - 1);
+            return finished;
+        }
+
         public override string ToString()
         {
             string finished = "|";
@@ -55,6 +78,16 @@ namespace ComputerUtils.Data
         public string header { get; set; } = "";
         public List<object> entries { get; set; } = new List<object>();
 
+        public Column()
+        {
+
+        }
+
+        public Column(string header)
+        {
+            this.header = header;
+        }
+
         public T GetObject<T>(int row)
         {
             if (row >= entries.Count) return default(T);
@@ -69,7 +102,7 @@ namespace ComputerUtils.Data
         public string GetString(int row)
         {
             if (row >= entries.Count) return "";
-            return (string)entries[row];
+            return entries[row].ToString();
         }
 
         public int getColumnWidth()

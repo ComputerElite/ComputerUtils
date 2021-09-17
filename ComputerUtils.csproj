@@ -94,6 +94,7 @@
     <Compile Include="ComputerUtils.RandomExtensions.cs" />
     <Compile Include="ComputerUtils.RegexStuff.cs" />
     <Compile Include="ComputerUtils.StringFormatters.cs" />
+    <Compile Include="ComputerUtils.Timing.cs" />
     <Compile Include="ComputerUtils.Updating.cs" />
     <Compile Include="ComputerUtils.VarUtils.cs" />
     <Compile Include="ComputerUtils.Webserver.cs" />
