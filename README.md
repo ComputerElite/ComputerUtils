@@ -1,2 +1,2 @@
 # ComputerUtils
-various utils for command line applications made by me
+various utils for command line and android applications made by me
