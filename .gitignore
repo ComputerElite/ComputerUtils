@@ -1,2 +1,6 @@
-﻿bin
-obj
+﻿ComputerUtils/bin
+ComputerUtils/obj
+ComputerUtils.Android/bin
+ComputerUtils.Android/obj
+ComputerUtils Tester/bin
+ComputerUtils Tester/obj

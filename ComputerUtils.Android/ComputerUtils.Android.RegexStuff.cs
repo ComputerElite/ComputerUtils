@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text.RegularExpressions;
 
-namespace ComputerUtils.RegexStuff
+namespace ComputerUtils.Android.RegexStuff
 {
     public class RegexTemplates
     {

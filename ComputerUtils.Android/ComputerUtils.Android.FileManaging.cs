@@ -1,4 +1,4 @@
-﻿using ComputerUtils.Logging;
+﻿using ComputerUtils.Android.Logging;
 using System;
 using System.IO;
 
@@ -34,7 +34,8 @@ namespace ComputerUtils.FileManaging
                 DirectoryInfo i = Directory.GetParent(dir);
                 if (i == null) return dir;
                 return i.FullName;
-            } catch
+            }
+            catch
             {
                 return dir;
             }
@@ -99,7 +100,7 @@ namespace ComputerUtils.FileManaging
 
         public static DirectoryInfo RecreateDirectoryIfExisting(string path)
         {
-            
+
             if (Directory.Exists(path))
             {
                 Logger.Log("Deleting " + path);

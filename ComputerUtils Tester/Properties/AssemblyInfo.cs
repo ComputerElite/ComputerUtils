@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // Allgemeine Informationen über eine Assembly werden über die folgenden
 // Attribute gesteuert. Ändern Sie diese Attributwerte, um die Informationen zu ändern,
 // die einer Assembly zugeordnet sind.
-[assembly: AssemblyTitle("ComputerUtils")]
+[assembly: AssemblyTitle("ComputerUtils Tester")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("ComputerElite")]
-[assembly: AssemblyProduct("ComputerUtils")]
-[assembly: AssemblyCopyright("")]
+[assembly: AssemblyCompany("")]
+[assembly: AssemblyProduct("ComputerUtils Tester")]
+[assembly: AssemblyCopyright("Copyright ©  2021")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // Die folgende GUID bestimmt die ID der Typbibliothek, wenn dieses Projekt für COM verfügbar gemacht wird
-[assembly: Guid("f4a6aa3f-d1b6-42b4-9183-ca3f2d75c7df")]
+[assembly: Guid("d0f8af64-3bf2-414e-a7b0-29f132e88754")]
 
 // Versionsinformationen für eine Assembly bestehen aus den folgenden vier Werten:
 //

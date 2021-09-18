@@ -1,4 +1,5 @@
-﻿using ComputerUtils.Logging;
+﻿using ComputerUtils.Android.Logging;
+using ComputerUtils.Android.AndroidTools;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -12,8 +13,9 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using static Android.Bluetooth.BluetoothClass;
 
-namespace ComputerUtils.Webserver
+namespace ComputerUtils.Android.Webserver
 {
     public class HttpServer
     {
@@ -28,7 +30,8 @@ namespace ComputerUtils.Webserver
         public string[] otherPrefixes = new string[0];
         public bool onlyLocal = true;
         public Thread serverThread = null;
-        
+        public List<string> ips = new List<string>();
+
         public void StartServer(int port, bool setupHttps = false, string[] otherPrefixes = null, bool onlyLocal = true)
         {
             StartServer(new int[] { port }, setupHttps, otherPrefixes, onlyLocal);
@@ -44,12 +47,12 @@ namespace ComputerUtils.Webserver
             HttpListener listener = new HttpListener();
             String hostName = Dns.GetHostName();
             Logger.Log("Host name: " + hostName);
-            foreach(string prefix in GetPrefixes())
+            foreach (string prefix in GetPrefixes())
             {
                 listener.Prefixes.Add(prefix);
                 Logger.Log("Server listening on " + prefix);
             }
-            
+
             serverThread = new Thread(() =>
             {
                 listener.Start();
@@ -65,7 +68,7 @@ namespace ComputerUtils.Webserver
                                 if (context.Request.IsWebSocketRequest)
                                 {
                                     Logger.Log("Websocket connected from " + context.Request.RemoteEndPoint);
-                                    string uRL = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
+                                    string uRL = DecodeUrlString(context.Request.Url.AbsolutePath);
                                     for (int i = 0; i < wsRoutes.Count; i++)
                                     {
                                         if (wsRoutes[i].UseRoute(uRL))
@@ -111,6 +114,7 @@ namespace ComputerUtils.Webserver
         {
             List<string> prefixes = new List<string>();
             IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
+            ips = new List<string>();
             if (otherPrefixes != null)
             {
                 foreach (string p in otherPrefixes)
@@ -132,6 +136,7 @@ namespace ComputerUtils.Webserver
                 foreach (IPAddress ip in host.AddressList)
                 {
                     if (onlyLocal && ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) continue;
+                    ips.Add("http://" + ip.ToString() + ":" + port + "/");
                     prefixes.Add("http://" + ip.ToString() + ":" + port + "/");
                     if (setupHttps)
                     {
@@ -186,7 +191,41 @@ namespace ComputerUtils.Webserver
             {
                 string file = folderPath + ServerRequest.path.Substring(path.Length + 1).Replace("/", "\\");
                 //Logger.Log(file);
-                if (File.Exists(file)) ServerRequest.SendFile(file);
+                if (AssetTools.DoesAssetExist(file)) ServerRequest.SendFile(file);
+                else ServerRequest.Send404();
+                return true;
+            }), true, ignoreCase, ignoreEnd);
+        }
+
+        public void AddRouteFileFS(string path, string filePath, bool ignoreCase = true, bool ignoreEnd = true)
+        {
+            string contentType = GetContentTpe(filePath);
+            AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
+            {
+                ServerRequest.SendFileFS(filePath);
+                return true;
+            }), false, ignoreCase, ignoreEnd);
+        }
+
+        public void AddRouteFileFS(string path, string filePath, Dictionary<string, string> replace, bool ignoreCase = true, bool ignoreEnd = true)
+        {
+            string contentType = GetContentTpe(filePath);
+            AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
+            {
+                ServerRequest.SendFileFS(filePath, replace);
+                return true;
+            }), false, ignoreCase, ignoreEnd);
+        }
+
+        public void AddRouteFolderWithFilesFS(string path, string folderPath, bool ignoreCase = true, bool ignoreEnd = true)
+        {
+            if (!folderPath.EndsWith("\\") && folderPath.Length > 0) folderPath += "\\";
+            if (path.EndsWith("/")) path = path.Substring(0, path.Length - 1);
+            AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
+            {
+                string file = folderPath + ServerRequest.path.Substring(path.Length + 1).Replace("/", "\\");
+                //Logger.Log(file);
+                if (File.Exists(file)) ServerRequest.SendFileFS(file);
                 else ServerRequest.Send404();
                 return true;
             }), true, ignoreCase, ignoreEnd);
@@ -261,6 +300,15 @@ namespace ComputerUtils.Webserver
             }
             return "text/plain";
         }
+
+        // from https://stackoverflow.com/questions/1405048/how-do-i-decode-a-url-parameter-using-c
+        public static string DecodeUrlString(string url)
+        {
+            string newUrl;
+            while ((newUrl = Uri.UnescapeDataString(url)) != url)
+                url = newUrl;
+            return newUrl;
+        }
     }
 
 
@@ -277,17 +325,18 @@ namespace ComputerUtils.Webserver
             this.value = value;
             this.isFile = isFile;
             if (isFile && contentType == "") contentType = HttpServer.GetContentTpe(value);
-            else if(contentType != "") this.contentType = contentType;
+            else if (contentType != "") this.contentType = contentType;
             this.status = status;
         }
 
         public void DoRequest(ServerRequest serverRequest)
         {
-            if(isFile)
+            if (isFile)
             {
                 if (File.Exists(value)) serverRequest.SendData(File.ReadAllBytes(value), contentType, encoding, status, true);
                 else serverRequest.Send404();
-            } else
+            }
+            else
             {
                 serverRequest.SendString(value, contentType, status);
             }
@@ -317,17 +366,17 @@ namespace ComputerUtils.Webserver
         {
             string pathTmp = this.path;
             string requestPathTmp = request.path;
-            if(ignoreCase)
+            if (ignoreCase)
             {
                 pathTmp = pathTmp.ToLower();
                 requestPathTmp = requestPathTmp.ToLower();
             }
-            if(ignoreEnd)
+            if (ignoreEnd)
             {
                 pathTmp = pathTmp.Trim(new char[] { '/' });
                 requestPathTmp = requestPathTmp.Trim(new char[] { '/' });
             }
-            if((requestPathTmp == pathTmp || onlyCheckBeginning && requestPathTmp.StartsWith(pathTmp)) && request.method == this.method)
+            if ((requestPathTmp == pathTmp || onlyCheckBeginning && requestPathTmp.StartsWith(pathTmp)) && request.method == this.method)
             {
                 return action(request);
             }
@@ -392,11 +441,11 @@ namespace ComputerUtils.Webserver
         {
             this.context = context;
             this.cookies = context.Request.Cookies;
-            this.path = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
+            this.path = HttpServer.DecodeUrlString(context.Request.Url.AbsolutePath);
             this.method = context.Request.HttpMethod;
             this.server = server;
             this.queryString = context.Request.QueryString;
-            if(context.Request.HasEntityBody && context.Request.InputStream != Stream.Null)
+            if (context.Request.HasEntityBody && context.Request.InputStream != Stream.Null)
             {
                 bodyString = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding).ReadToEnd();
                 bodyBytes = context.Request.ContentEncoding.GetBytes(bodyString);
@@ -426,7 +475,29 @@ namespace ComputerUtils.Webserver
 
         public void SendFile(string file, string contentType = "", int statusCode = 200, bool closeRequest = true, Dictionary<string, string> headers = null)
         {
-            if(!File.Exists(file))
+            if (!AssetTools.DoesAssetExist(file))
+            {
+                Send404();
+                return;
+            }
+            SendData(AssetTools.GetAssetBytes(file), contentType == "" ? HttpServer.GetContentTpe(file) : contentType, Encoding.UTF8, statusCode, closeRequest, headers);
+        }
+
+        public void SendFile(string file, Dictionary<string, string> replace, string contentType = "", int statusCode = 200, bool closeRequest = true, Dictionary<string, string> headers = null)
+        {
+            if (!AssetTools.DoesAssetExist(file))
+            {
+                Send404();
+                return;
+            }
+            string toSend = AssetTools.GetAssetString(file);
+            foreach (KeyValuePair<string, string> key in replace) toSend = toSend.Replace(key.Key, key.Value);
+            SendString(toSend, contentType == "" ? HttpServer.GetContentTpe(file) : contentType, statusCode, closeRequest, headers);
+        }
+
+        public void SendFileFS(string file, string contentType = "", int statusCode = 200, bool closeRequest = true, Dictionary<string, string> headers = null)
+        {
+            if (!File.Exists(file))
             {
                 Send404();
                 return;
@@ -434,7 +505,7 @@ namespace ComputerUtils.Webserver
             SendData(File.ReadAllBytes(file), contentType == "" ? HttpServer.GetContentTpe(file) : contentType, Encoding.UTF8, statusCode, closeRequest, headers);
         }
 
-        public void SendFile(string file, Dictionary<string, string> replace, string contentType = "", int statusCode = 200, bool closeRequest = true, Dictionary<string, string> headers = null)
+        public void SendFileFS(string file, Dictionary<string, string> replace, string contentType = "", int statusCode = 200, bool closeRequest = true, Dictionary<string, string> headers = null)
         {
             if (!File.Exists(file))
             {
@@ -459,15 +530,15 @@ namespace ComputerUtils.Webserver
 
         public void SendData(byte[] data, string contentType, Encoding contentEncoding, int statusCode, bool closeRequest, Dictionary<string, string> headers = null)
         {
-            if(contentType != "") context.Response.ContentType = contentType;
+            if (contentType != "") context.Response.ContentType = contentType;
             context.Response.ContentEncoding = contentEncoding;
             context.Response.ContentLength64 = data.LongLength;
             context.Response.StatusCode = statusCode;
-            if(server.defaultResponseHeaders != null)
+            if (server.defaultResponseHeaders != null)
             {
                 foreach (KeyValuePair<string, string> header in server.defaultResponseHeaders) context.Response.Headers[header.Key] = header.Value;
             }
-            if(headers != null)
+            if (headers != null)
             {
                 foreach (KeyValuePair<string, string> header in headers) context.Response.Headers[header.Key] = header.Value;
             }
@@ -496,7 +567,7 @@ namespace ComputerUtils.Webserver
         public SocketHandler(HttpListenerContext context, HttpServer server, WebsocketRoute route)
         {
             this.context = context;
-            this.path = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
+            this.path = HttpServer.DecodeUrlString(context.Request.Url.AbsolutePath);
             this.server = server;
             this.route = route;
             try
@@ -519,7 +590,8 @@ namespace ComputerUtils.Webserver
                     {
                         Logger.Log("Websocket closed by client: " + context.Request.RemoteEndPoint);
                         socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
-                    } else
+                    }
+                    else
                     {
                         buffer = buffer.TakeWhile((v, index) => buffer.Skip(index).Any(w => w != 0x00)).ToArray();
                         SocketServerRequest socketRequest = new SocketServerRequest(context, server, this, result, buffer);
@@ -553,7 +625,7 @@ namespace ComputerUtils.Webserver
         public SocketServerRequest(HttpListenerContext context, HttpServer server, SocketHandler handler, WebSocketReceiveResult receiveResult, byte[] bytes)
         {
             this.context = context;
-            this.path = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
+            this.path = HttpServer.DecodeUrlString(context.Request.Url.AbsolutePath);
             this.server = server;
             this.handler = handler;
             this.bodyString = Encoding.UTF8.GetString(bytes);

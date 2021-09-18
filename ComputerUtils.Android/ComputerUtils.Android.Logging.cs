@@ -1,9 +1,10 @@
-﻿using ComputerUtils.RegexStuff;
+﻿using ComputerUtils.Android.RegexStuff;
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
 
-namespace ComputerUtils.Logging {
+namespace ComputerUtils.Android.Logging
+{
     public class Logger
     {
         public static string logFile { get; set; } = "";
