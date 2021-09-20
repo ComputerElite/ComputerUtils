@@ -2,7 +2,7 @@
 using System;
 using System.IO;
 
-namespace ComputerUtils.Android.FileManaging
+namespace ComputerUtils.FileManaging
 {
     public class FileManager
     {

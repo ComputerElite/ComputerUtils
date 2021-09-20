@@ -297,10 +297,6 @@ namespace ComputerUtils.Android.Webserver
                     return "text/css";
                 case ".mp3":
                     return "audio/mpeg";
-                case ".ogg":
-                    return "audio/vorbis";
-                case ".wav":
-                    return "audio/wav";
             }
             return "text/plain";
         }

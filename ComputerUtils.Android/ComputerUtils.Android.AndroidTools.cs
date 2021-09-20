@@ -2,7 +2,6 @@
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
-using ComputerUtils.Android.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -28,7 +27,7 @@ namespace ComputerUtils.Android.AndroidTools
 
         public static bool DoesAssetExist(string assetName)
         {
-            //GetAllFiles("").ForEach(e => Logger.Log("\"" + e + "\" == \"" + assetName + "\" = " + (e == assetName).ToString(), LoggingType.Debug));
+            //GetAllFiles("").ForEach(e => Logger.Log(e, LoggingType.Debug));
             return GetAllFiles("").Contains(assetName);
         }
 
