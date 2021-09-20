@@ -332,18 +332,18 @@ namespace ComputerUtils.ConsoleUi
 
     public class DownloadProgressUI
     {
-        public bool StartDownload(string downloadLink, string destination, bool showETA = true)
+        public bool StartDownload(string downloadLink, string destination, bool showETA = true, Dictionary<string, string> headers = null)
         {
-            return DownloadThreadHandler(downloadLink, destination, showETA).Result;
+            return DownloadThreadHandler(downloadLink, destination, showETA, headers).Result;
         }
 
-        public async Task<bool> DownloadThreadHandler(string downloadLink, string destination, bool showETA = true)
+        public async Task<bool> DownloadThreadHandler(string downloadLink, string destination, bool showETA = true, Dictionary<string, string> headers = null)
         {
             bool completed = false;
             bool success = false;
             Thread t = new Thread(() =>
             {
-                success = DownloadThread(downloadLink, destination, showETA).Result;
+                success = DownloadThread(downloadLink, destination, showETA, headers).Result;
                 completed = true;
             });
             t.Start();
@@ -354,7 +354,7 @@ namespace ComputerUtils.ConsoleUi
             return success;
         }
 
-        public async Task<bool> DownloadThread(string downloadLink, string destination, bool showETA = true)
+        public async Task<bool> DownloadThread(string downloadLink, string destination, bool showETA = true, Dictionary<string, string> headers = null)
         {
             bool completed = false;
             bool success = false;
@@ -405,7 +405,13 @@ namespace ComputerUtils.ConsoleUi
                 completed = true;
                 Console.WriteLine();
             };
-            
+            if(headers != null)
+            {
+                foreach(KeyValuePair<string, string> h in headers)
+                {
+                    c.Headers[h.Key] = h.Value;
+                }
+            }
             c.DownloadFileAsync(new Uri(downloadLink), destination);
             while (!completed)
             {
