@@ -7,6 +7,44 @@ using System.Windows.Controls;
 
 namespace ComputerUtils.Encryption
 {
+    public class PasswordEncryption
+    {
+        // char is 16 bit 0xFFFF max
+        public static string Decrypt(string ciphertext, string password)
+        {
+            string finished = "";
+            for (int i = 0; i < ciphertext.Length; i++)
+            {
+                int c = ciphertext[i] - password[i % password.Length];
+                if (c < 0) c = 0xFFFF + c; 
+                finished += (char)c;
+            }
+            return finished;
+        }
+
+        public static string Encrypt(string text, string password)
+        {
+            string finished = "";
+            for (int i = 0; i < text.Length; i++)
+            {
+                int c = ((text[i] + password[i % password.Length]));
+                if (c > 0xFFFF) c -= 0xFFFF;
+                finished += (char)c;
+            }
+            return finished;
+        }
+
+        public static string ToEasyReadTM(string input)
+        {
+            string finished = "";
+            foreach(char c in input)
+            {
+                finished += (int)c + " ";
+            }
+            return finished;
+        }
+    }
+
     public class Encrypter
     {
         public Tuple<byte[], byte[]> EncryptOTP(byte[] input)
