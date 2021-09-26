@@ -12,29 +12,75 @@ namespace ComputerUtils.ADB
     {
         public List<string> ADBPaths { get; set; } = new List<string>() { "adb.exe", "User\\Android\\platform-tools_r29.0.4-windows\\platform-tools\\adb.exe", "User\\AppData\\Roaming\\SideQuest\\platform-tools\\adb.exe", "C:\\Program Files\\SideQuest\\resources\\app.asar.unpacked\\build\\platform-tools\\adb.exe" };
 
+
         public bool Pull(string source, string destination)
         {
+            Logger.Log("Pulling " + source + " to " + destination, LoggingType.ADB);
             return adb("pull \"" + source + "\" \"" + destination + "\"");
         }
-
+        public bool InstallAPK(string pathToApk, AndroidUser u)
+        {
+            return InstallAPK(pathToApk, u.id);
+        }
         public bool InstallAPK(string pathToApk, string user = "0")
         {
+            Logger.Log("Installing " + pathToApk + " on user " + user + ". This may take a bit.", LoggingType.ADB);
             return adb("install --user " + user + " \"" + pathToApk + "\"");
         }
 
+        public bool Uninstall(string package, AndroidUser u)
+        {
+            return Uninstall(package, u.id);
+        }
         public bool Uninstall(string package, string user = "0")
         {
+            Logger.Log("Uninstalling " + package + " on user " + user, LoggingType.ADB);
             return adb("uninstall --user " + user + " \"" + package + "\"");
         }
 
         public bool Push(string source, string destination)
         {
+            Logger.Log("Pushing " + source + " to " + destination, LoggingType.ADB);
             return adb("push \"" + source + "\" \"" + destination + "\"");
         }
+
+        public List<string> ListPackages(AndroidUser u)
+        {
+            return ListPackages(u.id);
+        }
+        public List<string> ListPackages(string user = "0")
+        {
+            Logger.Log("Listing packages of user " + user);
+            List<string> packages = new List<string>();
+            foreach(string s in adbS("shell pm list packages --user " + user).Split('\n'))
+            {
+                if(s.Contains(":")) packages.Add(s.Split(':')[1]);
+            }
+            return packages;
+        }
+
         public bool StopApp(string appid)
         {
+            Logger.Log("Stopping " + appid, LoggingType.ADB);
             return adb("shell am force-stop " + appid);
         }
+
+        public List<AndroidUser> GetUsers()
+        {
+            Logger.Log("Getting all Users", LoggingType.ADB);
+            List<AndroidUser> users = new List<AndroidUser>();
+            foreach (string s in adbS("shell pm list users").Split('\n'))
+            {
+                if (s.Trim().StartsWith("UserInfo{"))
+                {
+                    users.Add(new AndroidUser(s.Trim().Replace("UserInfo{", "").Split(':')[0], s.Trim().Replace("UserInfo{", "").Split(':')[1]));
+                    
+                }
+            }
+            Logger.Log("Got " + users.Count + " users. Usernames will not be shows due to privacy reasons.", LoggingType.ADB);
+            return users;
+        }
+
         public bool adb(String Argument)
         {
             return adbThreadHandler(Argument).Result;
@@ -94,15 +140,15 @@ namespace ComputerUtils.ADB
                 {
                     // Start the process with the info we specified.
                     // Call WaitForExit and then the using statement will close.
-                    Logger.Log("Starting adb with " + s.FileName + " " + s.Arguments, LoggingType.ADB);
+                    Logger.Log("Starting adb with " + s.FileName + " " + s.Arguments, LoggingType.ADBIntern);
                     using (Process exeProcess = Process.Start(s))
                     {
                         String IPS = exeProcess.StandardOutput.ReadToEnd();
                         String Error = exeProcess.StandardError.ReadToEnd();
                         exeProcess.WaitForExit();
-                        Logger.Log("Output: " + IPS, LoggingType.ADB);
-                        Logger.Log("Error Output: " + Error, LoggingType.ADB);
-                        Logger.Log("Exit code: " + exeProcess.ExitCode, LoggingType.ADB);
+                        Logger.Log("Output: " + IPS, LoggingType.ADBIntern);
+                        Logger.Log("Error Output: " + Error, LoggingType.ADBIntern);
+                        Logger.Log("Exit code: " + exeProcess.ExitCode, LoggingType.ADBIntern);
                         if(!Logger.displayLogInConsole) Console.WriteLine("Output by ADB: " + IPS);
                         if (IPS.Contains("no devices/emulators found") && exeProcess.ExitCode != 0)
                         {
@@ -196,15 +242,15 @@ namespace ComputerUtils.ADB
                 {
                     // Start the process with the info we specified.
                     // Call WaitForExit and then the using statement will close.
-                    Logger.Log("Starting adb with " + s.FileName + " " + s.Arguments, LoggingType.ADB);
+                    Logger.Log("Starting adb with " + s.FileName + " " + s.Arguments, LoggingType.ADBIntern);
                     using (Process exeProcess = Process.Start(s))
                     {
                         String IPS = exeProcess.StandardOutput.ReadToEnd();
                         String Error = exeProcess.StandardError.ReadToEnd();
                         exeProcess.WaitForExit();
-                        Logger.Log("Output: " + IPS, LoggingType.ADB);
-                        Logger.Log("Error Output: " + Error, LoggingType.ADB);
-                        Logger.Log("Exit code: " + exeProcess.ExitCode, LoggingType.ADB);
+                        Logger.Log("Output: " + IPS, LoggingType.ADBIntern);
+                        Logger.Log("Error Output: " + Error, LoggingType.ADBIntern);
+                        Logger.Log("Exit code: " + exeProcess.ExitCode, LoggingType.ADBIntern);
                         if (IPS.Contains("no devices/emulators found") && exeProcess.ExitCode != 0)
                         {
                             return "adb110";
@@ -224,6 +270,23 @@ namespace ComputerUtils.ADB
                 }
             }
             return "adb100";
+        }
+    }
+
+    public class AndroidUser
+    {
+        public string id { get; set; } = "";
+        public string name { get; set; } = "";
+
+        public AndroidUser(string id, string name)
+        {
+            this.id = id;
+            this.name = name;
+        }
+
+        public override string ToString()
+        {
+            return id + ": " + name;
         }
     }
 }

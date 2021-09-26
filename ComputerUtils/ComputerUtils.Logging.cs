@@ -34,10 +34,16 @@ namespace ComputerUtils.Logging {
                         Console.ForegroundColor = ConsoleColor.Yellow;
                         break;
                     case LoggingType.Debug:
-                        Console.ForegroundColor = ConsoleColor.DarkYellow;
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        break;
+                    case LoggingType.ADBIntern:
+                        Console.ForegroundColor = ConsoleColor.Yellow;
                         break;
                     case LoggingType.ADB:
-                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.ForegroundColor = ConsoleColor.DarkYellow;
+                        break;
+                    case LoggingType.Important:
+                        Console.ForegroundColor = ConsoleColor.Magenta;
                         break;
                 }
                 Console.WriteLine(longLogInConsole ? text : text.Replace(linePrefix, ""));
@@ -55,7 +61,7 @@ namespace ComputerUtils.Logging {
         public static string GetLinePrefix(LoggingType loggingType)
         {
             DateTime t = DateTime.Now;
-            return "[" + t.Day.ToString("d2") + "." + t.Month.ToString("d2") + "." + t.Year.ToString("d4") + "   " + t.Hour.ToString("d2") + ":" + t.Minute.ToString("d2") + ":" + t.Second.ToString("d2") + "." + t.Millisecond.ToString("d5") + "] " + (Enum.GetName(typeof(LoggingType), loggingType) + ":").PadRight(10);
+            return "[" + t.Day.ToString("d2") + "." + t.Month.ToString("d2") + "." + t.Year.ToString("d4") + "   " + t.Hour.ToString("d2") + ":" + t.Minute.ToString("d2") + ":" + t.Second.ToString("d2") + "." + t.Millisecond.ToString("d5") + "] " + (Enum.GetName(typeof(LoggingType), loggingType) + ":").PadRight(15);
         }
 
         public static void SetLogFile(string file)
@@ -71,6 +77,8 @@ namespace ComputerUtils.Logging {
         Error = 2,
         Debug = 3,
         Crash = 4,
-        ADB = 5
+        ADB = 5,
+        ADBIntern = 6,
+        Important = 7
     }
 }
