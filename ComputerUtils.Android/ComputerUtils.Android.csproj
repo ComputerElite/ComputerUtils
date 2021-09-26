@@ -48,9 +48,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ComputerUtils.Android.cs" />
+    <Compile Include="ComputerUtils.Android.Data.cs" />
     <Compile Include="ComputerUtils.Android.FileManaging.cs" />
     <Compile Include="ComputerUtils.Android.Logging.cs" />
+    <Compile Include="ComputerUtils.Android.RandomExtensions.cs" />
     <Compile Include="ComputerUtils.Android.RegexStuff.cs" />
+    <Compile Include="ComputerUtils.Android.StringFormatters.cs" />
+    <Compile Include="ComputerUtils.Android.VarUtils.cs" />
     <Compile Include="ComputerUtils.Android.Webserver.cs" />
     <Compile Include="Resources\Resource.designer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

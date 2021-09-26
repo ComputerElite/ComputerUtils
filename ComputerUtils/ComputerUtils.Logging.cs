@@ -36,6 +36,9 @@ namespace ComputerUtils.Logging {
                     case LoggingType.Debug:
                         Console.ForegroundColor = ConsoleColor.DarkYellow;
                         break;
+                    case LoggingType.ADB:
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        break;
                 }
                 Console.WriteLine(longLogInConsole ? text : text.Replace(linePrefix, ""));
                 Console.ForegroundColor = ConsoleColor.White;
@@ -67,6 +70,7 @@ namespace ComputerUtils.Logging {
         Warning = 1,
         Error = 2,
         Debug = 3,
-        Crash = 4
+        Crash = 4,
+        ADB = 5
     }
 }

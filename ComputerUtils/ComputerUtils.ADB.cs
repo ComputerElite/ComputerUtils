@@ -16,6 +16,17 @@ namespace ComputerUtils.ADB
         {
             return adb("pull \"" + source + "\" \"" + destination + "\"");
         }
+
+        public bool InstallAPK(string pathToApk, string user = "0")
+        {
+            return adb("install --user " + user + " \"" + pathToApk + "\"");
+        }
+
+        public bool Uninstall(string package, string user = "0")
+        {
+            return adb("uninstall --user " + user + " \"" + package + "\"");
+        }
+
         public bool Push(string source, string destination)
         {
             return adb("push \"" + source + "\" \"" + destination + "\"");
@@ -83,16 +94,16 @@ namespace ComputerUtils.ADB
                 {
                     // Start the process with the info we specified.
                     // Call WaitForExit and then the using statement will close.
-                    Logger.Log("Starting adb with " + s.FileName + " " + s.Arguments);
+                    Logger.Log("Starting adb with " + s.FileName + " " + s.Arguments, LoggingType.ADB);
                     using (Process exeProcess = Process.Start(s))
                     {
                         String IPS = exeProcess.StandardOutput.ReadToEnd();
                         String Error = exeProcess.StandardError.ReadToEnd();
                         exeProcess.WaitForExit();
-                        Logger.Log("Output: " + IPS);
-                        Logger.Log("Error Output: " + Error);
-                        Logger.Log("Exit code: " + exeProcess.ExitCode);
-                        Console.WriteLine("Output by ADB: " + IPS);
+                        Logger.Log("Output: " + IPS, LoggingType.ADB);
+                        Logger.Log("Error Output: " + Error, LoggingType.ADB);
+                        Logger.Log("Exit code: " + exeProcess.ExitCode, LoggingType.ADB);
+                        if(!Logger.displayLogInConsole) Console.WriteLine("Output by ADB: " + IPS);
                         if (IPS.Contains("no devices/emulators found") && exeProcess.ExitCode != 0)
                         {
                             return "adb110";
@@ -107,7 +118,7 @@ namespace ComputerUtils.ADB
                 }
                 catch (Exception e)
                 {
-                    Logger.Log("Failed: " + e.ToString());
+                    Logger.Log("ADB Failed: " + e.ToString(), LoggingType.Warning);
                     continue;
                 }
             }
@@ -185,15 +196,15 @@ namespace ComputerUtils.ADB
                 {
                     // Start the process with the info we specified.
                     // Call WaitForExit and then the using statement will close.
-                    Logger.Log("Starting adb with " + s.ToString());
+                    Logger.Log("Starting adb with " + s.FileName + " " + s.Arguments, LoggingType.ADB);
                     using (Process exeProcess = Process.Start(s))
                     {
-                        exeProcess.WaitForExit();
                         String IPS = exeProcess.StandardOutput.ReadToEnd();
                         String Error = exeProcess.StandardError.ReadToEnd();
-                        Logger.Log("Output: " + IPS);
-                        Logger.Log("Error Output: " + Error);
-                        Logger.Log("Exit code: " + exeProcess.ExitCode);
+                        exeProcess.WaitForExit();
+                        Logger.Log("Output: " + IPS, LoggingType.ADB);
+                        Logger.Log("Error Output: " + Error, LoggingType.ADB);
+                        Logger.Log("Exit code: " + exeProcess.ExitCode, LoggingType.ADB);
                         if (IPS.Contains("no devices/emulators found") && exeProcess.ExitCode != 0)
                         {
                             return "adb110";
@@ -208,7 +219,7 @@ namespace ComputerUtils.ADB
                 }
                 catch (Exception e)
                 {
-                    Logger.Log("Failed: " + e.ToString());
+                    Logger.Log("ADB Failed: " + e.ToString(), LoggingType.Warning);
                     continue;
                 }
             }

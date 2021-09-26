@@ -219,11 +219,11 @@ namespace ComputerUtils.Android.Webserver
 
         public void AddRouteFolderWithFilesFS(string path, string folderPath, bool ignoreCase = true, bool ignoreEnd = true)
         {
-            if (!folderPath.EndsWith("\\") && folderPath.Length > 0) folderPath += "\\";
+            if (!folderPath.EndsWith("/") && folderPath.Length > 0) folderPath += "/";
             if (path.EndsWith("/")) path = path.Substring(0, path.Length - 1);
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
-                string file = folderPath + ServerRequest.path.Substring(path.Length + 1).Replace("/", "\\");
+                string file = folderPath + ServerRequest.path.Substring(path.Length + 1).Replace("\\", "/");
                 //Logger.Log(file);
                 if (File.Exists(file)) ServerRequest.SendFileFS(file);
                 else ServerRequest.Send404();
