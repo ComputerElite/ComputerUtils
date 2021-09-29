@@ -31,11 +31,11 @@ namespace ComputerUtils.Updating
         {
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine("Checking for updates");
-            UpdateEntry latest = GetLatestVersion();
+            GithubRelease latest = GetLatestVersion();
             if (latest.comparedToCurrentVersion == 1)
             {
-                Logger.Log("Update available: " + version + " -> " + latest.Version);
-                Console.WriteLine("New update availabel! Current version: " + version + ", latest version: " + latest.Version);
+                Logger.Log("Update available: " + version + " -> " + latest.tag_name);
+                Console.WriteLine("New update availabel! Current version: " + version + ", latest version: " + latest.tag_name);
                 return true;
             }
             else if (latest.comparedToCurrentVersion == -2)
@@ -45,8 +45,8 @@ namespace ComputerUtils.Updating
             }
             else if (latest.comparedToCurrentVersion == -1)
             {
-                Logger.Log("User on preview version: " + version + " Latest stable: " + latest.Version);
-                Console.WriteLine("Have fun on a preview version (" + version + "). You can downgrade to the latest stable release (" + latest.Version + ") by pressing enter.");
+                Logger.Log("User on preview version: " + version + " Latest stable: " + latest.tag_name);
+                Console.WriteLine("Have fun on a preview version (" + version + "). You can downgrade to the latest stable release (" + latest.tag_name + ") by pressing enter.");
                 return true;
             }
             else
@@ -57,23 +57,26 @@ namespace ComputerUtils.Updating
             return false;
         }
 
-        public UpdateEntry GetLatestVersion()
+        public GithubRelease GetLatestVersion()
         {
             try
             {
                 Logger.Log("Fetching newest version");
                 WebClient c = new WebClient();
                 c.Headers.Add("user-agent", AppName + "/" + version);
-                String json = c.DownloadString(GitHubRepoLink + "/main/update.json");
-                UpdateFile updates = JsonSerializer.Deserialize<UpdateFile>(json);
-                UpdateEntry latest = updates.Updates[0];
+                string repoApi = "https://api.github.com/repos/" + GitHubRepoLink.Split('/')[3] + "/" + GitHubRepoLink.Split('/')[4] + "/releases";
+                string json = c.DownloadString(repoApi);
+                
+                List<GithubRelease> updates = JsonSerializer.Deserialize<List<GithubRelease>>(json);
+
+                GithubRelease latest = updates[0];
                 latest.comparedToCurrentVersion = latest.GetVersion().CompareTo(new System.Version(version));
                 return latest;
             }
             catch
             {
                 Logger.Log("Fetching of newest version failed", LoggingType.Error);
-                return new UpdateEntry();
+                return new GithubRelease();
             }
 
         }
@@ -81,11 +84,11 @@ namespace ComputerUtils.Updating
         public void Update()
         {
             Console.WriteLine(AppName + " started in update mode. Fetching newest version");
-            UpdateEntry e = GetLatestVersion();
-            Console.WriteLine("Updating to version " + e.Version + ". Starting download (this may take a few seconds)");
+            GithubRelease e = GetLatestVersion();
+            Console.WriteLine("Updating to version " + e.tag_name + ". Starting download (this may take a few seconds)");
             WebClient c = new WebClient();
             Logger.Log("Downloading update");
-            c.DownloadFile(e.Download, exe + "update.zip");
+            c.DownloadFile(e.GetDownload(), exe + "update.zip");
             Logger.Log("Unpacking");
             Console.WriteLine("Unpacking update");
             string destDir = new DirectoryInfo(Path.GetDirectoryName(exe)).Parent.FullName + "\\";
@@ -107,7 +110,7 @@ namespace ComputerUtils.Updating
             }
             File.Delete(exe + "update.zip");
             Logger.Log("Update successful");
-            Console.WriteLine("Updated to version " + e.Version + ". Changelog:\n" + e.Changelog + "\n\nStart " + AppName + " by pressing any key");
+            Console.WriteLine("Updated to version " + e.tag_name + ". Changelog:\n" + e.body + "\n\nStart " + AppName + " by pressing any key");
             Console.ReadKey();
             Process.Start(destDir + launchableExe);
         }
@@ -129,22 +132,38 @@ namespace ComputerUtils.Updating
         }
     }
 
-    public class UpdateFile
+    public class GithubRelease
     {
-        public List<UpdateEntry> Updates { get; set; } = new List<UpdateEntry>();
-    }
-
-    public class UpdateEntry
-    {
-        public List<string> Creators { get; set; } = new List<string>();
-        public string Changelog { get; set; } = "N/A";
-        public string Download { get; set; } = "N/A";
-        public string Version { get; set; } = "1.0.0";
+        public string url { get; set; } = "";
+        public string tag_name { get; set; } = "";
+        public string body { get; set; } = "";
+        public GithubAuthor author { get; set; } = new GithubAuthor();
+        public List<GithubAsset> assets { get; set; } = new List<GithubAsset>();
         public int comparedToCurrentVersion = -2; //0 = same, -1 = earlier, 1 = newer, -2 Error
+
+        public string GetDownload()
+        {
+            foreach(GithubAsset a in assets)
+            {
+                if (a.content_type == "application/x-zip-compressed") return a.browser_download_url;
+            }
+            return "";
+        }
 
         public Version GetVersion()
         {
-            return new Version(Version);
+            return new Version(tag_name);
         }
+    }
+
+    public class GithubAuthor
+    {
+        public string login { get; set; } = "";
+    }
+
+    public class GithubAsset
+    {
+        public string browser_download_url { get; set; } = "";
+        public string content_type { get; set; } = "";
     }
 }

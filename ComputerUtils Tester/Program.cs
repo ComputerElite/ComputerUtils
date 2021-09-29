@@ -15,6 +15,7 @@ using ComputerUtils.VarUtils;
 using ComputerUtils.ConsoleUi;
 using System.Threading;
 using ComputerUtils.Webserver;
+using ComputerUtils.Updating;
 
 namespace ComputerUtils_Tester
 {
@@ -25,9 +26,15 @@ namespace ComputerUtils_Tester
         [STAThread]
         static void Main(string[] args)
         {
-            WebserverTest();
+            UpdateTest();
             Console.WriteLine("\nPress any key to exit");
             Console.ReadLine();
+        }
+
+        static void UpdateTest()
+        {
+            Updater u = new Updater("1.3.1", "https://github.com/ComputerElite/Rift-downgrader", "Rift Downgrader");
+            u.CheckUpdate();
         }
 
         static void WebserverTest()
