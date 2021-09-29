@@ -1,4 +1,5 @@
-﻿using ComputerUtils.Logging;
+﻿using ComputerUtils.ConsoleUi;
+using ComputerUtils.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -78,7 +79,23 @@ namespace ComputerUtils.Updating
                 Logger.Log("Fetching of newest version failed", LoggingType.Error);
                 return new GithubRelease();
             }
+        }
 
+        /// <summary>
+        /// Checks for updates, aks the user if they want to update, íf they want to it exits the program and starts the updating process
+        /// </summary>
+        public void UpdateAssistant()
+        {
+            if(CheckUpdate())
+            {
+                Logger.Log("Update available. Asking user if they want to update");
+                string choice = ConsoleUiController.QuestionString("Do you want to update? (Y/n): ");
+                if (choice.ToLower() == "y" || choice == "")
+                {
+                    StartUpdate(); // This function will exit the program
+                }
+                Logger.Log("Not updating.");
+            }
         }
 
         public void Update()

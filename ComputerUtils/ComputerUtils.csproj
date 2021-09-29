@@ -86,6 +86,7 @@
     <Compile Include="ComputerUtils.ADB.cs" />
     <Compile Include="ComputerUtils.Camera.cs" />
     <Compile Include="ComputerUtils.ConsoleUI.cs" />
+    <Compile Include="ComputerUtils.cs" />
     <Compile Include="ComputerUtils.Data.cs" />
     <Compile Include="ComputerUtils.Database.cs" />
     <Compile Include="ComputerUtils.Encryption.cs" />
