@@ -28,6 +28,16 @@ namespace ComputerUtils.ADB
             return adb("install --user " + user + " \"" + pathToApk + "\"");
         }
 
+        public bool ForceInstallAPK(string pathToApk, AndroidUser u)
+        {
+            return InstallAPK(pathToApk, u.id);
+        }
+        public bool ForceInstallAPK(string pathToApk, string user = "0")
+        {
+            Logger.Log("Installing " + pathToApk + " on user " + user + ". This may take a bit.", LoggingType.ADB);
+            return adb("install --user " + user + " -r -d \"" + pathToApk + "\"");
+        }
+
         public bool Uninstall(string package, AndroidUser u)
         {
             return Uninstall(package, u.id);

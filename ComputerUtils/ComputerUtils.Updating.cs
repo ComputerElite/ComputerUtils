@@ -17,13 +17,15 @@ namespace ComputerUtils.Updating
         public string exeName = "";
         public string AppName = "";
         public string GitHubRepoLink = "";
+        public string exeLocation = "";
 
-        public Updater(string currentVersion, string GitHubRepoLink, string AppName, string exeName = "auto")
+        public Updater(string currentVersion, string GitHubRepoLink, string AppName, string exeLocation, string exeName = "auto")
         {
             this.version = currentVersion;
             this.GitHubRepoLink = GitHubRepoLink;
             this.AppName = AppName;
             this.exeName = exeName;
+            this.exeLocation = exeLocation;
         }
 
         public Updater() { }
@@ -127,9 +129,11 @@ namespace ComputerUtils.Updating
             }
             File.Delete(exe + "update.zip");
             Logger.Log("Update successful");
+            Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("Updated to version " + e.tag_name + ". Changelog:\n" + e.body + "\n\nStart " + AppName + " by pressing any key");
             Console.ReadKey();
             Process.Start(destDir + launchableExe);
+            Environment.Exit(0);
         }
 
         public void StartUpdate()
@@ -142,9 +146,10 @@ namespace ComputerUtils.Updating
             {
                 File.Copy(f, exe + "updater\\" + Path.GetFileName(f), true);
             }
-            Logger.Log("Starting update. Closing program");
+            string toStart = exe + "updater\\" + Path.GetFileName(exeLocation);
+            Logger.Log("Starting update. Closing program. Starting " + toStart);
             Console.WriteLine("Starting update.");
-            Process.Start(exe + "updater\\" + Path.GetFileName(System.Reflection.Assembly.GetExecutingAssembly().Location), "--update");
+            Process.Start(toStart, "--update");
             Environment.Exit(0);
         }
     }
