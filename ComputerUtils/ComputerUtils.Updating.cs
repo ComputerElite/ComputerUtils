@@ -147,7 +147,7 @@ namespace ComputerUtils.Updating
                 File.Copy(f, exe + "updater\\" + Path.GetFileName(f), true);
             }
             string toStart = exe + "updater\\" + Path.GetFileName(exeLocation);
-            Logger.Log("Starting update. Closing program. Starting " + toStart);
+            Logger.Log("Starting update. Closing program");
             Console.WriteLine("Starting update.");
             Process.Start(toStart, "--update");
             Environment.Exit(0);
