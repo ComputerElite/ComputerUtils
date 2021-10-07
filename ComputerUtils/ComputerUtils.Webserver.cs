@@ -311,6 +311,8 @@ namespace ComputerUtils.Webserver
         {
             this.method = method;
             this.path = path;
+            if (!this.path.EndsWith("/")) this.path += "/";
+            if (!this.path.StartsWith("/")) this.path = "/" + this.path;
             this.action = action;
             this.onlyCheckBeginning = onlyCheckBeginning;
             this.ignoreCase = ignoreCase;
@@ -350,6 +352,8 @@ namespace ComputerUtils.Webserver
         public WebsocketRoute(string path, Action<SocketServerRequest> action, bool onlyCheckBeginning, bool ignoreCase, bool ignoreEnd)
         {
             this.path = path;
+            if (!this.path.EndsWith("/")) this.path += "/";
+            if (!this.path.StartsWith("/")) this.path = "/" + this.path;
             this.action = action;
             this.onlyCheckBeginning = onlyCheckBeginning;
             this.ignoreCase = ignoreCase;

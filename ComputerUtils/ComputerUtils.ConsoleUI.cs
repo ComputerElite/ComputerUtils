@@ -227,15 +227,23 @@ namespace ComputerUtils.ConsoleUi
         public int currentLine = 0;
         public int lastLength = 0;
 
+        /// <summary>
+        /// Clears all line from currentLine to the current cursor position.
+        /// </summary>
         public void ClearCurrentLine()
         {
-            Console.SetCursorPosition(0, currentLine);
-            Console.Write(new string(' ', lastLength));
+            int amount = Console.CursorTop - currentLine + 1;
+            for (int i = 0; i < amount; i++)
+            {
+                Console.SetCursorPosition(0, currentLine + i);
+                Console.Write(new string(' ', Console.WindowWidth));
+            }
         }
 
+        [Obsolete]
         public void StoreCurrentLineLength()
         {
-            lastLength = Console.CursorLeft;
+            lastLength = (Console.CursorTop - currentLine + 1) * Console.WindowWidth;
         }
     }
 
@@ -288,7 +296,6 @@ namespace ComputerUtils.ConsoleUi
             Console.Write(task);
             currentIndex++;
             if (currentIndex >= characters.Length) currentIndex = 0;
-            StoreCurrentLineLength();
         }
     }
 
@@ -326,24 +333,23 @@ namespace ComputerUtils.ConsoleUi
             Console.Write(" ");
             if(doneText != "" && totalText != "") Console.Write(doneText + " / " + totalText + "   ");
             Console.Write(extraText);
-            StoreCurrentLineLength();
         }
     }
 
-    public class DownloadProgressUI
+    public class DownloadProgressUI 
     {
-        public bool StartDownload(string downloadLink, string destination, bool showETA = true, Dictionary<string, string> headers = null)
+        public bool StartDownload(string downloadLink, string destination, bool showETA = true, Dictionary<string, string> headers = null, bool clearAfterwads = false)
         {
-            return DownloadThreadHandler(downloadLink, destination, showETA, headers).Result;
+            return DownloadThreadHandler(downloadLink, destination, showETA, headers, clearAfterwads).Result;
         }
 
-        public async Task<bool> DownloadThreadHandler(string downloadLink, string destination, bool showETA = true, Dictionary<string, string> headers = null)
+        public async Task<bool> DownloadThreadHandler(string downloadLink, string destination, bool showETA = true, Dictionary<string, string> headers = null, bool clearAfterwads = false)
         {
             bool completed = false;
             bool success = false;
             Thread t = new Thread(() =>
             {
-                success = DownloadThread(downloadLink, destination, showETA, headers).Result;
+                success = DownloadThread(downloadLink, destination, showETA, headers, clearAfterwads).Result;
                 completed = true;
             });
             t.Start();
@@ -354,17 +360,17 @@ namespace ComputerUtils.ConsoleUi
             return success;
         }
 
-        public async Task<bool> DownloadThread(string downloadLink, string destination, bool showETA = true, Dictionary<string, string> headers = null)
+        public async Task<bool> DownloadThread(string downloadLink, string destination, bool showETA = true, Dictionary<string, string> headers = null, bool clearAfterwads = false)
         {
             bool completed = false;
             bool success = false;
+            int currentLine = Console.CursorTop;
             Logger.Log("Downloading " + Path.GetFileName(destination) + " from " + downloadLink + " to " + destination);
             Console.ForegroundColor = ConsoleColor.White;
             Console.Write("Downloading ");
             Console.ForegroundColor = ConsoleColor.Blue;
             Console.WriteLine(downloadLink);
             Console.ForegroundColor = ConsoleColor.White;
-            int currentLine = Console.CursorTop;
             WebClient c = new WebClient();
             SizeConverter s = new SizeConverter();
             DateTime lastUpdate = DateTime.Now;
@@ -375,9 +381,11 @@ namespace ComputerUtils.ConsoleUi
             progressBar.Start();
             List<long> lastBytesPerSec = new List<long>();
             long BytesToRecieve = 0;
+            progressBar.UpdateProgress(0, 1, "0", "0", "Download started");
             c.DownloadProgressChanged += (o, e) =>
             {
                 if (locked) return;
+                
                 locked = true;
                 double secondsPassed = (DateTime.Now - lastUpdate).TotalSeconds;
                 if (secondsPassed >= progressBar.UpdateRate)
@@ -404,6 +412,11 @@ namespace ComputerUtils.ConsoleUi
                 progressBar.UpdateProgress(BytesToRecieve, BytesToRecieve, s.ByteSizeToString(BytesToRecieve), s.ByteSizeToString(BytesToRecieve), success ? "Finished" : "An error occured");
                 completed = true;
                 Console.WriteLine();
+                if (clearAfterwads)
+                {
+                    progressBar.currentLine = currentLine;
+                    progressBar.ClearCurrentLine();
+                }
             };
             if(headers != null)
             {
