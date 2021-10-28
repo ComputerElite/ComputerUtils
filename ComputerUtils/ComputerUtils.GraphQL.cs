@@ -118,7 +118,7 @@ namespace ComputerUtils.GraphQL
         public static GraphQLClient StoreSearch(string query, Headset headset)
         {
             GraphQLClient c = OculusTemplate();
-            c.options.doc_id = "4446310405385365";
+            c.options.doc_id = "3928907833885295";
             c.options.variables = "{\"query\":\"" + query + "\",\"hmdType\":\"" + Enum.GetName(typeof(Headset), headset) + "\",\"firstSearchResultItems\":100}";
             return c;
         }

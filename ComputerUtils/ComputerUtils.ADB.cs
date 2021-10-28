@@ -12,6 +12,11 @@ namespace ComputerUtils.ADB
     {
         public List<string> ADBPaths { get; set; } = new List<string>() { "adb.exe", "User\\Android\\platform-tools_r29.0.4-windows\\platform-tools\\adb.exe", "User\\AppData\\Roaming\\SideQuest\\platform-tools\\adb.exe", "C:\\Program Files\\SideQuest\\resources\\app.asar.unpacked\\build\\platform-tools\\adb.exe" };
 
+        public string ListFilesAndDirectories(string directory)
+        {
+            Logger.Log("Listing files of " + directory, LoggingType.ADB);
+            return adbS("shell ls \"" + directory + "\"");
+        }
 
         public bool Pull(string source, string destination)
         {

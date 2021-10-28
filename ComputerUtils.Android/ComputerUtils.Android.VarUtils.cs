@@ -68,7 +68,7 @@ namespace ComputerUtils.Android.VarUtils
 
     public class SizeConverter
     {
-        public string ByteSizeToString(long input, int decimals = 2)
+        public static string ByteSizeToString(long input, int decimals = 2)
         {
             // TB
             if (input > 1099511627776) return String.Format("{0:0." + new string('#', decimals) + "}", input / 1099511627776.0) + " TB";
@@ -82,7 +82,7 @@ namespace ComputerUtils.Android.VarUtils
             else return input + " Bytes";
         }
 
-        public string SecondsToBetterString(long seconds)
+        public static string SecondsToBetterString(long seconds)
         {
             if (seconds < 60) return seconds + " S";
             else if (seconds >= 60) return Math.Floor(seconds / 60.0) + " M  " + (seconds % 60) + " S";

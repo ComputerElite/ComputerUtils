@@ -49,6 +49,7 @@
   <ItemGroup>
     <Compile Include="ComputerUtils.Android.cs" />
     <Compile Include="ComputerUtils.Android.Data.cs" />
+    <Compile Include="ComputerUtils.Android.Encryption.cs" />
     <Compile Include="ComputerUtils.Android.FileManaging.cs" />
     <Compile Include="ComputerUtils.Android.Logging.cs" />
     <Compile Include="ComputerUtils.Android.RandomExtensions.cs" />
