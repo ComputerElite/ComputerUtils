@@ -29,8 +29,9 @@ namespace ComputerUtils.ConsoleUi
             Console.ForegroundColor = ConsoleColor.Blue;
             Console.Write(question);
             Console.ForegroundColor = ConsoleColor.Cyan;
+            string f = Console.ReadLine();
             Console.ForegroundColor = ConsoleColor.White;
-            return Console.ReadLine();
+            return f;
         }
 
         public static string ShowMenu(string[] options, string questionName = "choice")

@@ -23,6 +23,15 @@ namespace ComputerUtils.RandomExtensions
             return array[random.Next(array.Length)];
         }
 
+        public static T Pick<T>(List<T> array)
+        {
+            return array[random.Next(array.Count)];
+        }
+        public static T Pick<T>(T[] array)
+        {
+            return array[random.Next(array.Length)];
+        }
+
         public static string CreateToken(int length = 100)
         {
             string token = "";
