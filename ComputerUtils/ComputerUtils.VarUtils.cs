@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using ComputerUtils.RandomExtensions;
 
@@ -116,6 +117,21 @@ namespace ComputerUtils.VarUtils
         public static long DateTimeToJavaTimestamp(DateTime dateTime)
         {
             return ((DateTimeOffset)dateTime).ToUnixTimeMilliseconds();
+        }
+    }
+
+    public class Sorter
+    {
+        public static Dictionary<T1, T2> Sort<T1, T2>(Dictionary<T1, T2> toSort)
+        {
+            Dictionary<T1,T2> result = new Dictionary<T1,T2>();
+            List<T1> keys = toSort.Keys.ToList();
+            keys.Sort();
+            foreach (T1 key in keys)
+            {
+                result[key] = toSort[key];
+            }
+            return result;
         }
     }
 }

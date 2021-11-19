@@ -263,7 +263,7 @@ namespace ComputerUtils.Webserver
                 case ".wav":
                     return "audio/wav";
             }
-            return "text/plain";
+            return "application/octet-stream";
         }
     }
 
