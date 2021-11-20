@@ -373,7 +373,6 @@ namespace ComputerUtils.ConsoleUi
             Console.WriteLine(downloadLink);
             Console.ForegroundColor = ConsoleColor.White;
             WebClient c = new WebClient();
-            SizeConverter s = new SizeConverter();
             DateTime lastUpdate = DateTime.Now;
             bool locked = false;
             int lastLength = 0;
@@ -392,8 +391,8 @@ namespace ComputerUtils.ConsoleUi
                 if (secondsPassed >= progressBar.UpdateRate)
                 {
                     BytesToRecieve = e.TotalBytesToReceive;
-                    string current = s.ByteSizeToString(e.BytesReceived);
-                    string total = s.ByteSizeToString(BytesToRecieve);
+                    string current = SizeConverter.ByteSizeToString(e.BytesReceived);
+                    string total = SizeConverter.ByteSizeToString(BytesToRecieve);
                     long bytesPerSec = (long)Math.Round((e.BytesReceived - lastBytes) / secondsPassed);
                     lastBytesPerSec.Add(bytesPerSec);
                     if (lastBytesPerSec.Count > 5) lastBytesPerSec.RemoveAt(0);
@@ -401,7 +400,7 @@ namespace ComputerUtils.ConsoleUi
                     long avg = 0;
                     foreach (long l in lastBytesPerSec) avg += l;
                     avg = avg / lastBytesPerSec.Count;
-                    progressBar.UpdateProgress(e.BytesReceived, BytesToRecieve, current, total, s.ByteSizeToString(bytesPerSec, 0) + "/s" + (showETA ? ("   ETA " + s.SecondsToBetterString((e.TotalBytesToReceive - e.BytesReceived) / avg)) : ""));
+                    progressBar.UpdateProgress(e.BytesReceived, BytesToRecieve, current, total, SizeConverter.ByteSizeToString(bytesPerSec, 0) + "/s" + (showETA ? ("   ETA " + SizeConverter.SecondsToBetterString((e.TotalBytesToReceive - e.BytesReceived) / avg)) : ""));
                     lastUpdate = DateTime.Now;
                 }
                 locked = false;
@@ -410,7 +409,7 @@ namespace ComputerUtils.ConsoleUi
             {
                 if(e.Error == null) success = true;
                 Logger.Log("Did download succeed: " + success + (success ? "" : ":\n" + e.ToString()));
-                progressBar.UpdateProgress(BytesToRecieve, BytesToRecieve, s.ByteSizeToString(BytesToRecieve), s.ByteSizeToString(BytesToRecieve), success ? "Finished" : "An error occured");
+                progressBar.UpdateProgress(BytesToRecieve, BytesToRecieve, SizeConverter.ByteSizeToString(BytesToRecieve), SizeConverter.ByteSizeToString(BytesToRecieve), success ? "Finished" : "An error occured");
                 completed = true;
                 Console.WriteLine();
                 if (clearAfterwads)

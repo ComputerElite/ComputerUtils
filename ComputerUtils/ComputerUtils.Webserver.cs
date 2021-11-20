@@ -89,6 +89,7 @@ namespace ComputerUtils.Webserver
                                         if (routes[i].UseRoute(request)) break;
                                     }
                                     if (!request.closed) request.Send404();
+                                    request.Dispose();
                                 }
                             }
                             catch (Exception e)
@@ -115,7 +116,7 @@ namespace ComputerUtils.Webserver
             {
                 foreach (string p in otherPrefixes)
                 {
-                    prefixes.Add(p);
+                    //prefixes.Add(p + "/");
                     foreach (int port in ports)
                     {
                         prefixes.Add(p + ":" + port + "/");
@@ -125,17 +126,21 @@ namespace ComputerUtils.Webserver
             foreach (int port in ports)
             {
                 prefixes.Add("http://127.0.0.1:" + port + "/");
+                prefixes.Add("http://localhost:" + port + "/");
                 if (setupHttps)
                 {
                     prefixes.Add("https://127.0.0.1:" + port + "/");
+                    prefixes.Add("https://localhost:" + port + "/");
                 }
                 foreach (IPAddress ip in host.AddressList)
                 {
                     if (onlyLocal && ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) continue;
-                    prefixes.Add("http://" + ip.ToString() + ":" + port + "/");
+                    string ipp = ip.ToString();
+                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) ipp = "[" + ipp + "]";
+                    if(!prefixes.Contains("http://" + ipp + ":" + port + "/")) prefixes.Add("http://" + ipp + ":" + port + "/");
                     if (setupHttps)
                     {
-                        prefixes.Add("https://" + ip.ToString() + ":" + port + "/");
+                        if(!prefixes.Contains("https://" + ipp + ":" + port + "/")) prefixes.Add("https://" + ipp + ":" + port + "/");
                     }
                 }
             }
@@ -180,11 +185,11 @@ namespace ComputerUtils.Webserver
 
         public void AddRouteFolderWithFiles(string path, string folderPath, bool ignoreCase = true, bool ignoreEnd = true)
         {
-            if (!folderPath.EndsWith("\\") && folderPath.Length > 0) folderPath += "\\";
+            if (!folderPath.EndsWith("\\") && folderPath.Length > 0) folderPath += Path.DirectorySeparatorChar;
             if (path.EndsWith("/")) path = path.Substring(0, path.Length - 1);
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
-                string file = folderPath + ServerRequest.path.Substring(path.Length + 1).Replace("/", "\\");
+                string file = folderPath + ServerRequest.path.Substring(path.Length + 1).Replace('/', Path.DirectorySeparatorChar);
                 //Logger.Log(file);
                 if (File.Exists(file)) ServerRequest.SendFile(file);
                 else ServerRequest.Send404();
@@ -268,7 +273,7 @@ namespace ComputerUtils.Webserver
     }
 
 
-    public class ServerValueObject
+    public class ServerValueObject : IDisposable
     {
         public string value { get; set; } = "";
         public bool isFile { get; set; } = false;
@@ -296,9 +301,14 @@ namespace ComputerUtils.Webserver
                 serverRequest.SendString(value, contentType, status);
             }
         }
+
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+        }
     }
 
-    public class Route
+    public class Route : IDisposable
     {
         public string method { get; set; } = "GET";
         public string path { get; set; } = "/";
@@ -339,9 +349,14 @@ namespace ComputerUtils.Webserver
             }
             return false;
         }
+
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+        }
     }
 
-    public class WebsocketRoute
+    public class WebsocketRoute : IDisposable
     {
         public string path { get; set; } = "/";
         public bool onlyCheckBeginning { get; set; } = false;
@@ -380,9 +395,14 @@ namespace ComputerUtils.Webserver
             }
             return false;
         }
+
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+        }
     }
 
-    public class ServerRequest
+    public class ServerRequest : IDisposable
     {
         public HttpListenerContext context { get; set; } = null;
         public string path { get; set; } = "/";
@@ -406,15 +426,24 @@ namespace ComputerUtils.Webserver
             this.queryString = context.Request.QueryString;
             if(context.Request.HasEntityBody && context.Request.InputStream != Stream.Null)
             {
-                bodyString = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding).ReadToEnd();
-                bodyBytes = context.Request.ContentEncoding.GetBytes(bodyString);
+                byte[] buffer = new byte[16 * 1024];
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    int read;
+                    while ((read = context.Request.InputStream.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        ms.Write(buffer, 0, read);
+                    }
+                    bodyBytes = ms.ToArray();
+                }
                 this.requestBodyContentType = context.Request.ContentType;
+                this.bodyString = context.Request.ContentEncoding.GetString(bodyBytes);
             }
         }
 
         public override string ToString()
         {
-            return method + " " + path + " from " + context.Request.RemoteEndPoint + " with body: " + bodyString;
+            return method + " " + path + " from " + context.Request.RemoteEndPoint + " with body: " + (bodyString.Length > 500 ? bodyString.Substring(0, 500) + " [...]" : bodyString);
         }
 
         public void Send404()
@@ -489,9 +518,14 @@ namespace ComputerUtils.Webserver
         {
             context.Response.Close();
         }
+
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+        }
     }
 
-    public class SocketHandler
+    public class SocketHandler : IDisposable
     {
         public HttpListenerContext context { get; set; } = null;
         public string path { get; set; } = "/";
@@ -535,6 +569,7 @@ namespace ComputerUtils.Webserver
                         route.action(socketRequest);
                     }
                 }
+                Dispose();
             });
             t.Start();
         }
@@ -545,9 +580,14 @@ namespace ComputerUtils.Webserver
             Logger.Log("Websocket closed by server from " + context.Request.RemoteEndPoint);
             socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
         }
+
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+        }
     }
 
-    public class SocketServerRequest
+    public class SocketServerRequest : IDisposable
     {
         public HttpListenerContext context { get; set; } = null;
         public string path { get; set; } = "/";
@@ -584,6 +624,11 @@ namespace ComputerUtils.Webserver
         public void Close()
         {
             handler.CloseRequest();
+        }
+
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
         }
     }
 }
