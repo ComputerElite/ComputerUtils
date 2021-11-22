@@ -10,6 +10,14 @@ namespace ComputerUtils.Logging {
         public static bool removeUsernamesFromLog { get; set; } = true;
         public static bool displayLogInConsole { get; set; } = false;
         public static bool longLogInConsole { get; set; } = true;
+        public static bool saveOutputInVariable { get; set; } = true;
+        public static string log { get; set; } = "";
+        public static string GetLog()
+        {
+            string l = log;
+            log = "";
+            return l;
+        }
 
         public static void Log(string text, LoggingType loggingType = LoggingType.Info)
         {
@@ -48,6 +56,14 @@ namespace ComputerUtils.Logging {
                 }
                 Console.WriteLine(longLogInConsole ? text : text.Replace(linePrefix, ""));
                 Console.ForegroundColor = ConsoleColor.White;
+            }
+            if (saveOutputInVariable)
+            {
+                log += "\n" + text;
+                if (log.Length > 10000)
+                {
+                    log = log.Substring(log.Length - 10000);
+                }
             }
             if (logFile == "") return;
             File.AppendAllText(logFile, "\n" + text);

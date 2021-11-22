@@ -267,6 +267,8 @@ namespace ComputerUtils.Webserver
                     return "audio/vorbis";
                 case ".wav":
                     return "audio/wav";
+                case ".zip":
+                    return "application/zip";
             }
             return "application/octet-stream";
         }
@@ -486,6 +488,7 @@ namespace ComputerUtils.Webserver
         public void Redirect(string target)
         {
             context.Response.Redirect(target);
+            Close();
             Logger.Log("    Redirecting " + context.Request.RemoteEndPoint + " to " + target + " from " + path);
         }
 
@@ -516,6 +519,7 @@ namespace ComputerUtils.Webserver
 
         public void Close()
         {
+            closed = true;
             context.Response.Close();
         }
 

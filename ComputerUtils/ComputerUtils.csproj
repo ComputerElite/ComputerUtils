@@ -89,6 +89,7 @@
     <Compile Include="ComputerUtils.cs" />
     <Compile Include="ComputerUtils.Data.cs" />
     <Compile Include="ComputerUtils.Database.cs" />
+    <Compile Include="ComputerUtils.Discord.cs" />
     <Compile Include="ComputerUtils.Encryption.cs" />
     <Compile Include="ComputerUtils.FileManaging.cs" />
     <Compile Include="ComputerUtils.GraphQL.cs" />
