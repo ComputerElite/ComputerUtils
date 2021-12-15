@@ -358,6 +358,16 @@ namespace ComputerUtils.ConsoleUi
             {
                 await DelayCheck();
             }
+            if(success)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Success");
+            } else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Error while downloading");
+            }
+            Console.ForegroundColor = ConsoleColor.White;
             return success;
         }
 

@@ -450,12 +450,12 @@ namespace ComputerUtils.Webserver
 
         public void Send404()
         {
-            server.notFoundPage.DoRequest(this);
+            if (!closed) server.notFoundPage.DoRequest(this);
         }
 
         public void Send403()
         {
-            server.accessDeniedPage.DoRequest(this);
+            if(!closed) server.accessDeniedPage.DoRequest(this);
         }
 
         public void SendString(string str, string contentType = "text/plain", int statusCode = 200, bool closeRequest = true, Dictionary<string, string> headers = null)
