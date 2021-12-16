@@ -1,5 +1,6 @@
 ﻿using ComputerUtils.RegexStuff;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 
@@ -12,11 +13,18 @@ namespace ComputerUtils.Logging {
         public static bool longLogInConsole { get; set; } = true;
         public static bool saveOutputInVariable { get; set; } = true;
         public static string log { get; set; } = "";
+        public static List<string> notAllowedStrings { get; set; } = new List<string>();
         public static string GetLog()
         {
             string l = log;
             log = "";
             return l;
+        }
+
+        public static string CensorString(string input)
+        {
+            foreach (string s in notAllowedStrings) input = input.Replace(s, "");
+            return input;
         }
 
         public static void Log(string text, LoggingType loggingType = LoggingType.Info)
@@ -25,6 +33,7 @@ namespace ComputerUtils.Logging {
             if (removeUsernamesFromLog) text = RegexTemplates.RemoveUserName(text);
             string linePrefix = GetLinePrefix(loggingType);
             text = linePrefix + text.Replace("\n", "\n" + linePrefix);
+            text = CensorString(text);
             if (displayLogInConsole)
             {
                 switch (loggingType)

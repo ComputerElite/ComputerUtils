@@ -339,18 +339,18 @@ namespace ComputerUtils.ConsoleUi
 
     public class DownloadProgressUI 
     {
-        public bool StartDownload(string downloadLink, string destination, bool showETA = true, Dictionary<string, string> headers = null, bool clearAfterwads = false)
+        public bool StartDownload(string downloadLink, string destination, bool logLink = true, bool showETA = true, Dictionary<string, string> headers = null, bool clearAfterwads = false)
         {
-            return DownloadThreadHandler(downloadLink, destination, showETA, headers, clearAfterwads).Result;
+            return DownloadThreadHandler(downloadLink, destination, logLink, showETA, headers, clearAfterwads).Result;
         }
 
-        public async Task<bool> DownloadThreadHandler(string downloadLink, string destination, bool showETA = true, Dictionary<string, string> headers = null, bool clearAfterwads = false)
+        public async Task<bool> DownloadThreadHandler(string downloadLink, string destination, bool logLink = true, bool showETA = true, Dictionary<string, string> headers = null, bool clearAfterwads = false)
         {
             bool completed = false;
             bool success = false;
             Thread t = new Thread(() =>
             {
-                success = DownloadThread(downloadLink, destination, showETA, headers, clearAfterwads).Result;
+                success = DownloadThread(downloadLink, destination, logLink, showETA, headers, clearAfterwads).Result;
                 completed = true;
             });
             t.Start();
@@ -371,16 +371,16 @@ namespace ComputerUtils.ConsoleUi
             return success;
         }
 
-        public async Task<bool> DownloadThread(string downloadLink, string destination, bool showETA = true, Dictionary<string, string> headers = null, bool clearAfterwads = false)
+        public async Task<bool> DownloadThread(string downloadLink, string destination, bool logLink = true, bool showETA = true, Dictionary<string, string> headers = null, bool clearAfterwads = false)
         {
             bool completed = false;
             bool success = false;
             int currentLine = Console.CursorTop;
-            Logger.Log("Downloading " + Path.GetFileName(destination) + " from " + downloadLink + " to " + destination);
+            Logger.Log("Downloading " + Path.GetFileName(destination) + " from " + (logLink ? downloadLink : "hidden") + " to " + destination);
             Console.ForegroundColor = ConsoleColor.White;
             Console.Write("Downloading ");
             Console.ForegroundColor = ConsoleColor.Blue;
-            Console.WriteLine(downloadLink);
+            Console.WriteLine(Logger.CensorString(downloadLink));
             Console.ForegroundColor = ConsoleColor.White;
             WebClient c = new WebClient();
             DateTime lastUpdate = DateTime.Now;
