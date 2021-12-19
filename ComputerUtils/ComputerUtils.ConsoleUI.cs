@@ -34,6 +34,29 @@ namespace ComputerUtils.ConsoleUi
             return f;
         }
 
+        public static string SecureQuestionString(string question)
+        {
+            Console.ForegroundColor = ConsoleColor.Blue;
+            Console.Write(question);
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            string s = "";
+            ConsoleKeyInfo k;
+            while((k = Console.ReadKey(true)).Key != ConsoleKey.Enter)
+            {
+                if(k.Key == ConsoleKey.Backspace && s.Length >= 1)
+                {
+                    Console.Write("\b \b");
+                    s = s.Substring(0, s.Length - 1);
+                } else if(k.Key != ConsoleKey.Backspace)
+                {
+                    s += k.KeyChar;
+                    Console.Write("*");
+                }
+            }
+            Console.ForegroundColor = ConsoleColor.White;
+            return s;
+        }
+
         public static string ShowMenu(string[] options, string questionName = "choice")
         {
             Logger.Log("Setting up menu with " + options.Length + " options");
