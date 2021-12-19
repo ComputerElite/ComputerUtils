@@ -92,7 +92,6 @@
     <Compile Include="ComputerUtils.Discord.cs" />
     <Compile Include="ComputerUtils.Encryption.cs" />
     <Compile Include="ComputerUtils.FileManaging.cs" />
-    <Compile Include="ComputerUtils.GraphQL.cs" />
     <Compile Include="ComputerUtils.RandomExtensions.cs" />
     <Compile Include="ComputerUtils.RegexStuff.cs" />
     <Compile Include="ComputerUtils.StringFormatters.cs" />

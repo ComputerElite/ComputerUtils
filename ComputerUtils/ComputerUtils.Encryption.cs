@@ -2,11 +2,21 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 using System.Windows.Controls;
 
 namespace ComputerUtils.Encryption
 {
+    public class Hasher
+    {
+        public static SHA256 sHA256 = SHA256.Create();
+        public static string GetSHA256OfString(string input)
+        {
+            return BitConverter.ToString(sHA256.ComputeHash(Encoding.UTF8.GetBytes(input))).Replace("-", "");
+        }
+    }
+
     public class PasswordEncryption
     {
         // char is 16 bit 0xFFFF max

@@ -306,19 +306,32 @@ namespace ComputerUtils.ConsoleUi
         public double UpdateRate = 0.5;
         public long done = 0;
         public long total = 0;
+        public int eTARange = 10;
 
         public void Start()
         {
             currentLine = Console.CursorTop;
         }
 
-        public void UpdateProgress(int done, long total, string doneText = "", string totalText = "", string extraText = "")
+        public void UpdateProgress(int done, long total, string doneText = "", string totalText = "", string extraText = "", bool ETA = false)
         {
-            UpdateProgress((long)done, (long)total, doneText, totalText, extraText);
+            UpdateProgress((long)done, (long)total, doneText, totalText, extraText, ETA);
         }
-
-        public void UpdateProgress(long done, long total, string doneText = "", string totalText = "", string extraText = "")
+        public List<long> last = new List<long>();
+        public DateTime lastUpdate = DateTime.Now;
+        public void UpdateProgress(long done, long total, string doneText = "", string totalText = "", string extraText = "", bool ETA = false)
         {
+            if (ETA)
+            {
+                long lastPerSec = (long)Math.Round((done - this.done) / (DateTime.Now - lastUpdate).TotalSeconds);
+                last.Add(lastPerSec);
+                if (last.Count > eTARange) last.RemoveAt(0);
+                long avg = 0;
+                foreach (long l in last) avg += l;
+                avg = avg / last.Count;
+                extraText += "  ETA " + (avg == 0 ? "N/A" : SizeConverter.SecondsToBetterString((total - done) / avg));
+            }
+            lastUpdate = DateTime.Now;
             this.done = done;
             this.total = total;
             ClearCurrentLine();
@@ -410,7 +423,7 @@ namespace ComputerUtils.ConsoleUi
                     long avg = 0;
                     foreach (long l in lastBytesPerSec) avg += l;
                     avg = avg / lastBytesPerSec.Count;
-                    progressBar.UpdateProgress(e.BytesReceived, BytesToRecieve, current, total, SizeConverter.ByteSizeToString(bytesPerSec, 0) + "/s" + (showETA ? ("   ETA " + SizeConverter.SecondsToBetterString((e.TotalBytesToReceive - e.BytesReceived) / avg)) : ""));
+                    progressBar.UpdateProgress(e.BytesReceived, BytesToRecieve, current, total, SizeConverter.ByteSizeToString(bytesPerSec, 0) + "/s", true);
                     lastUpdate = DateTime.Now;
                 }
                 locked = false;
