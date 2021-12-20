@@ -463,6 +463,18 @@ namespace ComputerUtils.Webserver
             SendData(Encoding.UTF8.GetBytes(str), contentType, Encoding.UTF8, statusCode, closeRequest, headers);
         }
 
+        public void SendStringReplace(string str, string contentType = "text/plain", int statusCode = 200, Dictionary<string, string> replace = null, bool closeRequest = true, Dictionary<string, string> headers = null)
+        {
+            if(replace != null)
+            {
+                foreach(KeyValuePair<string, string> pair in replace)
+                {
+                    str = str.Replace(pair.Key, pair.Value);
+                }
+            }
+            SendData(Encoding.UTF8.GetBytes(str), contentType, Encoding.UTF8, statusCode, closeRequest, headers);
+        }
+
         public void SendFile(string file, string contentType = "", int statusCode = 200, bool closeRequest = true, Dictionary<string, string> headers = null)
         {
             if(!File.Exists(file))
