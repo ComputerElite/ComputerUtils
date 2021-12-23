@@ -53,6 +53,7 @@ namespace ComputerUtils.ConsoleUi
                     Console.Write("*");
                 }
             }
+            Console.WriteLine();
             Console.ForegroundColor = ConsoleColor.White;
             return s;
         }
@@ -281,10 +282,12 @@ namespace ComputerUtils.ConsoleUi
         public void Start()
         {
             currentLine = Console.CursorTop;
+            if(spinningWheelThread == null) SetupSpinningWheel(500);
         }
 
         public void SetupSpinningWheel(int msPerSpin)
         {
+            currentLine = Console.CursorTop;
             spinningWheelThread = new Thread(() =>
             {
                 while(true)
@@ -304,7 +307,8 @@ namespace ComputerUtils.ConsoleUi
 
         public void UpdateProgress(string task, bool NextLine = false)
         {
-            if(NextLine)
+            if (spinningWheelThread == null) SetupSpinningWheel(500);
+            if (NextLine)
             {
                 Console.WriteLine();
                 Start();

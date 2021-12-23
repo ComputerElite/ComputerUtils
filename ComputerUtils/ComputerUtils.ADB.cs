@@ -114,10 +114,10 @@ namespace ComputerUtils.ADB
                         txtAppend = "";
                         break;
                     case "adb110":
-                        txtAppend = "\n\n\nAn error Occured (Code: ADB110). Check following:\n\n- Your Quest is connected, Developer Mode enabled and USB Debugging enabled.";
+                        txtAppend = "\n\n\nAn error occured (Code: ADB110). Check following if your Quest is connected, Developer Mode enabled and USB Debugging enabled.";
                         break;
                     case "adb100":
-                        txtAppend = "\n\nAn error Occured (Code: ADB100). Check following:\n\n- You have adb installed.";
+                        txtAppend = "\n\nAn error occured (Code: ADB100). Check following if you have adb installed.";
                         break;
                     case "false":
                         txtAppend = "\n\nAn unhandled ADB error has occured. More info in log";
