@@ -278,15 +278,20 @@ namespace ComputerUtils.ConsoleUi
         public int currentIndex = 0;
         public Thread spinningWheelThread = null;
         public string currentText = "";
+        public bool aborted = false;
+        public bool started = false;
 
         public void Start()
         {
+            aborted = false;
             currentLine = Console.CursorTop;
-            if(spinningWheelThread == null) SetupSpinningWheel(500);
+            if(spinningWheelThread == null && !aborted && !started) SetupSpinningWheel(500);
+            started = true;
         }
 
         public void SetupSpinningWheel(int msPerSpin)
         {
+            if (spinningWheelThread != null) return;
             currentLine = Console.CursorTop;
             spinningWheelThread = new Thread(() =>
             {
@@ -301,13 +306,14 @@ namespace ComputerUtils.ConsoleUi
 
         public void StopSpinningWheel()
         {
+            aborted = true;
             spinningWheelThread.Abort();
             Console.WriteLine();
         }
 
         public void UpdateProgress(string task, bool NextLine = false)
         {
-            if (spinningWheelThread == null) SetupSpinningWheel(500);
+            if (spinningWheelThread == null && !aborted) SetupSpinningWheel(500);
             if (NextLine)
             {
                 Console.WriteLine();
