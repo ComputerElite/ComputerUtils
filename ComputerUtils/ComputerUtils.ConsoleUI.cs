@@ -434,6 +434,7 @@ namespace ComputerUtils.ConsoleUi
             int lastLength = 0;
             long lastBytes = 0;
             ProgressBarUI progressBar = new ProgressBarUI();
+            progressBar.eTARange = 20;
             progressBar.Start();
             List<long> lastBytesPerSec = new List<long>();
             long BytesToRecieve = 0;
