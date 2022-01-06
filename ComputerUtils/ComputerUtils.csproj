@@ -85,6 +85,7 @@
   <ItemGroup>
     <Compile Include="ComputerUtils.ADB.cs" />
     <Compile Include="ComputerUtils.Camera.cs" />
+    <Compile Include="ComputerUtils.CommandLine.cs" />
     <Compile Include="ComputerUtils.ConsoleUI.cs" />
     <Compile Include="ComputerUtils.cs" />
     <Compile Include="ComputerUtils.Data.cs" />
