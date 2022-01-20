@@ -146,7 +146,7 @@ namespace ComputerUtils.CommandLine
             {
                 if (ignoreCase && a.aliases.FirstOrDefault(x => (ignoreCase ? x.ToLower() : x) == name) != null && !a.isToggle && a.defaultValue != "") return a.defaultValue;
             }
-            return "nope";
+            return "";
         }
 
         public void ShowHelp(string exeName = "", string extraInfo = "")

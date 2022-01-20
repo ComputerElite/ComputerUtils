@@ -1,4 +1,5 @@
-﻿using ComputerUtils.Logging;
+﻿using ComputerUtils.ConsoleUi;
+using ComputerUtils.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -33,6 +34,15 @@ namespace ComputerUtils.ADB
             return adb("install --user " + user + " \"" + pathToApk + "\"");
         }
 
+        public bool InstallAPK(string apk, List<AndroidUser> users)
+        {
+            foreach (AndroidUser u in users)
+            {
+                if (!InstallAPK(apk, u)) return false;
+            }
+            return true;
+        }
+
         public bool ForceInstallAPK(string pathToApk, AndroidUser u)
         {
             return InstallAPK(pathToApk, u.id);
@@ -47,10 +57,50 @@ namespace ComputerUtils.ADB
         {
             return Uninstall(package, u.id);
         }
+
+        public List<AndroidUser> SelectUsers(string action = "")
+        {
+            List<string> selection = new List<string>();
+            Console.WriteLine("Select the user(s) for which you want to " + action);
+            List<AndroidUser> us = GetUsers();
+            foreach (AndroidUser u in us) selection.Add(u.name + " (" + u.id + ")");
+            selection.Add("All Users");
+            string choice = ConsoleUiController.ShowMenu(selection.ToArray(), "User");
+            List<AndroidUser> users = new List<AndroidUser>();
+            if (Convert.ToInt32(choice) >= selection.Count)
+            {
+                users = us;
+            }
+            else
+            {
+                users.Add(us[Convert.ToInt32(choice) - 1]);
+            }
+            return users;
+        }
+
+        public bool InstallAppSelectUser(string apk)
+        {
+            return InstallAPK(apk, SelectUsers());
+        }
+
+        public bool UninstallAppSelectUser(string package)
+        {
+            return Uninstall(package, SelectUsers());
+        }
+
         public bool Uninstall(string package, string user = "0")
         {
             Logger.Log("Uninstalling " + package + " on user " + user, LoggingType.ADB);
             return adb("uninstall --user " + user + " \"" + package + "\"");
+        }
+
+        public bool Uninstall(string package, List<AndroidUser> users)
+        {
+            foreach (AndroidUser u in users)
+            {
+                if (!Uninstall(package, u)) return false;
+            }
+            return true;
         }
 
         public bool Push(string source, string destination)

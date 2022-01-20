@@ -465,7 +465,7 @@ namespace ComputerUtils.ConsoleUi
             c.DownloadFileCompleted += (o, e) =>
             {
                 if(e.Error == null) success = true;
-                Logger.Log("Did download succeed: " + success + (success ? "" : ":\n" + e.ToString()));
+                Logger.Log("Did download succeed: " + success + (success ? "" : ":\n" + e.Error.ToString()));
                 progressBar.UpdateProgress(BytesToRecieve, BytesToRecieve, SizeConverter.ByteSizeToString(BytesToRecieve), SizeConverter.ByteSizeToString(BytesToRecieve), success ? "Finished" : "An error occured");
                 completed = true;
                 Console.WriteLine();
