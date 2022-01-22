@@ -429,12 +429,13 @@ namespace ComputerUtils.ConsoleUi
             Console.WriteLine(Logger.CensorString(downloadLink));
             Console.ForegroundColor = ConsoleColor.White;
             WebClient c = new WebClient();
-            DateTime lastUpdate = DateTime.Now;
+           
             bool locked = false;
             int lastLength = 0;
             long lastBytes = 0;
             ProgressBarUI progressBar = new ProgressBarUI();
             progressBar.eTARange = 20;
+            DateTime lastUpdate = DateTime.MinValue;
             progressBar.Start();
             List<long> lastBytesPerSec = new List<long>();
             long BytesToRecieve = 0;
