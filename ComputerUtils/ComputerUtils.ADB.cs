@@ -63,6 +63,12 @@ namespace ComputerUtils.ADB
             List<string> selection = new List<string>();
             Console.WriteLine("Select the user(s) for which you want to " + action);
             List<AndroidUser> us = GetUsers();
+            if(us.Count <= 0)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("No users found. Check connection with android device");
+                return new List<AndroidUser>();
+            }
             foreach (AndroidUser u in us) selection.Add(u.name + " (" + u.id + ")");
             selection.Add("All Users");
             string choice = ConsoleUiController.ShowMenu(selection.ToArray(), "User");
