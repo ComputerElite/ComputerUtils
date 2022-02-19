@@ -136,7 +136,7 @@ namespace ComputerUtils.Webserver
                 {
                     if (onlyLocal && ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) continue;
                     string ipp = ip.ToString();
-                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) ipp = "[" + ipp + "]";
+                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) ipp = "" + ipp + "";
                     if(!prefixes.Contains("http://" + ipp + ":" + port + "/")) prefixes.Add("http://" + ipp + ":" + port + "/");
                     if (setupHttps)
                     {
@@ -144,6 +144,7 @@ namespace ComputerUtils.Webserver
                     }
                 }
             }
+            //foreach (string p in prefixes) Logger.Log(p);
             return prefixes;
         }
 
@@ -572,6 +573,12 @@ namespace ComputerUtils.Webserver
                 while (!closed)
                 {
                     byte[] buffer = new byte[4096];
+                    if (socket.State != WebSocketState.Open)
+                    {
+                        closed = true;
+                        Dispose();
+                        return;
+                    }
                     WebSocketReceiveResult result = socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None).Result;
                     if (result.MessageType == WebSocketMessageType.Close)
                     {

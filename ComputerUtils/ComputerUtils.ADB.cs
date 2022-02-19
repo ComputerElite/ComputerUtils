@@ -1,5 +1,6 @@
 ﻿using ComputerUtils.ConsoleUi;
 using ComputerUtils.Logging;
+using ComputerUtils.Timing;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -184,7 +185,7 @@ namespace ComputerUtils.ADB
             t.Start();
             while (txtAppend == "N/A")
             {
-                await DelayCheck();
+                await TimeDelay.DelayWithoutThreadBlock(500);
             }
             if (txtAppend != "N/A")
             {
@@ -274,7 +275,7 @@ namespace ComputerUtils.ADB
             t.Start();
             while (txtAppend == "N/A" && returnValue == "Error")
             {
-                await DelayCheck();
+                await TimeDelay.DelayWithoutThreadBlock(500);
             }
             if (txtAppend != "N/A")
             {
@@ -282,17 +283,6 @@ namespace ComputerUtils.ADB
                 Console.WriteLine(txtAppend);
             }
             return returnValue;
-        }
-
-        public async Task DelayCheck()
-        {
-            var frame = new DispatcherFrame();
-            new Thread((ThreadStart)(() =>
-            {
-                Thread.Sleep(500);
-                frame.Continue = false;
-            })).Start();
-            Dispatcher.PushFrame(frame);
         }
 
         public string adbSThread(String Argument)

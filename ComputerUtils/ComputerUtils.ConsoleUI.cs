@@ -1,4 +1,5 @@
 ﻿using ComputerUtils.Logging;
+using ComputerUtils.Timing;
 using ComputerUtils.VarUtils;
 using System;
 using System.Collections.Generic;
@@ -402,7 +403,7 @@ namespace ComputerUtils.ConsoleUi
             t.Start();
             while (!completed)
             {
-                await DelayCheck();
+                await TimeDelay.DelayWithoutThreadBlock(100);
             }
             if(success)
             {
@@ -431,7 +432,6 @@ namespace ComputerUtils.ConsoleUi
             WebClient c = new WebClient();
            
             bool locked = false;
-            int lastLength = 0;
             long lastBytes = 0;
             ProgressBarUI progressBar = new ProgressBarUI();
             progressBar.eTARange = 20;
@@ -486,20 +486,9 @@ namespace ComputerUtils.ConsoleUi
             c.DownloadFileAsync(new Uri(downloadLink), destination);
             while (!completed)
             {
-                await DelayCheck();
+                await TimeDelay.DelayWithoutThreadBlock(100);
             }
             return success;
-        }
-
-        public async Task DelayCheck()
-        {
-            var frame = new DispatcherFrame();
-            new Thread((ThreadStart)(() =>
-            {
-                Thread.Sleep(100);
-                frame.Continue = false;
-            })).Start();
-            Dispatcher.PushFrame(frame);
         }
     }
 }
