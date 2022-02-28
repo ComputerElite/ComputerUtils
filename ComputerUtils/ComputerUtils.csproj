@@ -46,7 +46,11 @@
     <Reference Include="AForge.Video.DirectShow, Version=2.2.5.0, Culture=neutral, PublicKeyToken=61ea4348d43881b7, processorArchitecture=MSIL">
       <HintPath>..\packages\AForge.Video.DirectShow.2.2.5\lib\AForge.Video.DirectShow.dll</HintPath>
     </Reference>
+    <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
+    <Reference Include="QRCoder, Version=1.4.3.0, Culture=neutral, PublicKeyToken=c4ed5b9ae8358a28, processorArchitecture=MSIL">
+      <HintPath>..\..\ComputerAnalytics\packages\QRCoder.1.4.3\lib\net40\QRCoder.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
@@ -93,6 +97,7 @@
     <Compile Include="ComputerUtils.Discord.cs" />
     <Compile Include="ComputerUtils.Encryption.cs" />
     <Compile Include="ComputerUtils.FileManaging.cs" />
+    <Compile Include="ComputerUtils.QR.cs" />
     <Compile Include="ComputerUtils.RandomExtensions.cs" />
     <Compile Include="ComputerUtils.RegexStuff.cs" />
     <Compile Include="ComputerUtils.StringFormatters.cs" />

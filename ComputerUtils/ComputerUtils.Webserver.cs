@@ -236,7 +236,7 @@ namespace ComputerUtils.Webserver
             accessDeniedPage = new ServerValueObject(content, false, "", 403);
         }
 
-        public static string GetContentTpe(String path)
+        public static string GetContentTpe(string path)
         {
             switch (Path.GetExtension(path).ToLower())
             {
