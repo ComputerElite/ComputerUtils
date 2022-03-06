@@ -371,7 +371,7 @@ namespace ComputerUtils.ConsoleUi
             ClearCurrentLine();
             double percentage = done / (double)total;
             Console.SetCursorPosition(2, currentLine);
-            for (int i = 0; i < ProgressbarLength; i++)
+            for (int i = 1; i <= ProgressbarLength; i++)
             {
                 double localPercentage = (double)i / ProgressbarLength;
                 Console.ForegroundColor = ConsoleColor.Blue;
