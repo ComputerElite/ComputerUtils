@@ -369,13 +369,13 @@ namespace ComputerUtils.ConsoleUi
             this.done = done;
             this.total = total;
             ClearCurrentLine();
-            double percentage = done / (double)total;
+            double percentage = (double)done / (double)total;
             Console.SetCursorPosition(2, currentLine);
             for (int i = 1; i <= ProgressbarLength; i++)
             {
                 double localPercentage = (double)i / ProgressbarLength;
                 Console.ForegroundColor = ConsoleColor.Blue;
-                if (localPercentage < percentage) Console.ForegroundColor = ConsoleColor.DarkBlue;
+                if (localPercentage <= percentage) Console.ForegroundColor = ConsoleColor.DarkBlue;
                 Console.Write("█");
             }
             Console.Write(" ");
