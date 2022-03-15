@@ -579,7 +579,15 @@ namespace ComputerUtils.Webserver
                         Dispose();
                         return;
                     }
-                    WebSocketReceiveResult result = socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None).Result;
+                    WebSocketReceiveResult result;
+                    try
+                    {
+                        result = socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None).Result;
+                    } catch (Exception e)
+                    {
+                        Logger.Log("Unable to recieve Websocket. Terminating connection:" + e.ToString(), LoggingType.Warning);
+                        break;
+                    }
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
                         Logger.Log("Websocket closed by client: " + context.Request.RemoteEndPoint);
