@@ -1,4 +1,5 @@
 ﻿using ComputerUtils.ConsoleUi;
+using ComputerUtils.FileManaging;
 using ComputerUtils.Logging;
 using System;
 using System.Collections.Generic;
@@ -7,6 +8,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net;
 using System.Text.Json;
+using System.Threading;
 
 namespace ComputerUtils.Updating
 {
@@ -150,6 +152,59 @@ namespace ComputerUtils.Updating
             Logger.Log("Starting update. Closing program");
             Console.WriteLine("Starting update.");
             Process.Start(toStart, "--update");
+            Environment.Exit(0);
+        }
+
+        /// <summary>
+        /// Replaces the whole app with the contents of the zip in updater/update.zip
+        /// </summary>
+        /// <param name="dllName"></param>
+        /// <param name="workingDir"></param>
+        public static void UpdateNetApp(string dllName, string workingDir = "")
+        {
+            Logger.Log("Replacing everything with zip contents.");
+            Thread.Sleep(1000);
+            string destDir = new DirectoryInfo(Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory)).Parent.FullName + Path.DirectorySeparatorChar;
+            using (ZipArchive archive = ZipFile.OpenRead(destDir + "updater" + Path.DirectorySeparatorChar + "update.zip"))
+            {
+                foreach (ZipArchiveEntry entry in archive.Entries)
+                {
+                    String name = entry.FullName;
+                    if (name.EndsWith("/")) continue;
+                    if (name.Contains("/")) Directory.CreateDirectory(destDir + Path.GetDirectoryName(name));
+                    entry.ExtractToFile(destDir + entry.FullName, true);
+                }
+            }
+            ProcessStartInfo i = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = "\"" + destDir + dllName + "\" --workingdir \"" + workingDir + "\"",
+                UseShellExecute = true
+            };
+            Process.Start(i);
+            Environment.Exit(0);
+        }
+
+        public static void StartUpdateNetApp(byte[] updateZip, string dllName, string workingDir = "")
+        {
+            FileManager.RecreateDirectoryIfExisting(AppDomain.CurrentDomain.BaseDirectory + "updater");
+            string zip = AppDomain.CurrentDomain.BaseDirectory + "updater" + Path.DirectorySeparatorChar + "update.zip";
+            Logger.Log("Writing update zip to " + zip);
+            File.WriteAllBytes(zip, updateZip);
+            Logger.Log("Duplicating program for self contained update");
+            foreach (string s in Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory))
+            {
+                if (s.EndsWith("zip")) continue;
+                Logger.Log("Copying " + s);
+                File.Copy(s, AppDomain.CurrentDomain.BaseDirectory + "updater" + Path.DirectorySeparatorChar + Path.GetFileName(s), true);
+            }
+            ProcessStartInfo i = new ProcessStartInfo
+            {
+                Arguments = "\"" + AppDomain.CurrentDomain.BaseDirectory + "updater" + Path.DirectorySeparatorChar + dllName + "\" update --workingdir \"" + workingDir + "\"",
+                UseShellExecute = true,
+                FileName = "dotnet"
+            };
+            Process.Start(i);
             Environment.Exit(0);
         }
     }

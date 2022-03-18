@@ -348,6 +348,7 @@ namespace ComputerUtils.Webserver
             }
             if((requestPathTmp == pathTmp || onlyCheckBeginning && requestPathTmp.StartsWith(pathTmp)) && request.method == this.method)
             {
+                if(request.path.Length >= path.Length) request.pathDiff = request.path.Substring(path.Length);
                 return action(request);
             }
             return false;
@@ -409,6 +410,7 @@ namespace ComputerUtils.Webserver
     {
         public HttpListenerContext context { get; set; } = null;
         public string path { get; set; } = "/";
+        public string pathDiff { get; set; } = "/";
         public string method { get; set; } = "GET";
         public HttpServer server { get; set; } = null;
         public bool closed { get; set; } = false;
@@ -591,6 +593,7 @@ namespace ComputerUtils.Webserver
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
                         Logger.Log("Websocket closed by client: " + context.Request.RemoteEndPoint);
+                        closed = true;
                         socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
                     } else
                     {
@@ -647,6 +650,12 @@ namespace ComputerUtils.Webserver
 
         public void SendData(byte[] data, WebSocketMessageType msgType = WebSocketMessageType.Binary, bool closeRequest = false)
         {
+            if (handler.socket.CloseStatus.HasValue)
+            {
+                handler.closed = true;
+                handler.Dispose();
+                return;
+            }
             Logger.Log("    Sending " + data.LongLength + " bytes of data to " + context.Request.RemoteEndPoint + " via websocket at " + path);
             handler.socket.SendAsync(new ArraySegment<byte>(data, 0, data.Length), WebSocketMessageType.Text, receiveResult.EndOfMessage, CancellationToken.None);
             if (closeRequest) Close();
