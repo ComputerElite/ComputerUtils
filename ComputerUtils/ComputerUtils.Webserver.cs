@@ -134,9 +134,9 @@ namespace ComputerUtils.Webserver
                 }
                 foreach (IPAddress ip in host.AddressList)
                 {
-                    if (onlyLocal && ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) continue;
+                    if (onlyLocal && ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetworkV6 && ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) continue;
                     string ipp = ip.ToString();
-                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) ipp = "" + ipp + "";
+                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) ipp = "[" + ipp + "]";
                     if(!prefixes.Contains("http://" + ipp + ":" + port + "/")) prefixes.Add("http://" + ipp + ":" + port + "/");
                     if (setupHttps)
                     {
