@@ -94,6 +94,7 @@ namespace ComputerUtils.Webserver
                             }
                             catch (Exception e)
                             {
+                                context.Response.Close();
                                 Logger.Log("An error occured while handling a request:\n" + e.ToString(), LoggingType.Error);
                             }
                         });
