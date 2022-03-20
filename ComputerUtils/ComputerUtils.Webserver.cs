@@ -152,7 +152,7 @@ namespace ComputerUtils.Webserver
                         if (!prefixes.Contains("http://" + ipp + "/")) prefixes.Add("http://" + ipp + "/");
                         if (setupHttps)
                         {
-                            if (!prefixes.Contains("https://" + ipp + "/")) prefixes.Add("https://" + ipp + ":" + port + "/");
+                            if (!prefixes.Contains("https://" + ipp + "/")) prefixes.Add("https://" + ipp + "/");
                         }
                     }
                     
