@@ -185,6 +185,19 @@ namespace ComputerUtils.Updating
             Environment.Exit(0);
         }
 
+        public static void Restart(string dllName, string workingDir = "")
+        {
+            ProcessStartInfo i = new ProcessStartInfo
+            {
+                Arguments = "\"" + AppDomain.CurrentDomain.BaseDirectory + "updater" + Path.DirectorySeparatorChar + dllName + "\" update --workingdir \"" + workingDir + "\"",
+                UseShellExecute = true,
+                FileName = "dotnet"
+            };
+            Logger.Log("Starting " + i.FileName + " with args " + i.Arguments);
+            Process.Start(i);
+            Environment.Exit(0);
+        }
+
         public static void StartUpdateNetApp(byte[] updateZip, string dllName, string workingDir = "")
         {
             FileManager.RecreateDirectoryIfExisting(AppDomain.CurrentDomain.BaseDirectory + "updater");
@@ -204,6 +217,7 @@ namespace ComputerUtils.Updating
                 UseShellExecute = true,
                 FileName = "dotnet"
             };
+            Logger.Log("Starting " + i.FileName + " with args " + i.Arguments);
             Process.Start(i);
             Environment.Exit(0);
         }
