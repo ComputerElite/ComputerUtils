@@ -6,7 +6,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Net.WebSockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -46,8 +48,15 @@ namespace ComputerUtils.Webserver
             Logger.Log("Host name: " + hostName);
             foreach(string prefix in GetPrefixes())
             {
-                listener.Prefixes.Add(prefix);
-                Logger.Log("Server listening on " + prefix);
+                Logger.Log("Server will listen on " + prefix);
+                try
+                {
+                    listener.Prefixes.Add(prefix);
+                } catch(Exception e)
+                {
+                    Logger.Log("Actually nvm that. It won't listen on " + prefix + " :\n" + e.ToString());
+                }
+                
             }
             
             serverThread = new Thread(() =>
@@ -135,14 +144,18 @@ namespace ComputerUtils.Webserver
                 }
                 foreach (IPAddress ip in host.AddressList)
                 {
-                    if (onlyLocal && ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetworkV6 && ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) continue;
-                    string ipp = ip.ToString();
-                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) ipp = "[" + ipp + "]";
-                    if(!prefixes.Contains("http://" + ipp + ":" + port + "/")) prefixes.Add("http://" + ipp + ":" + port + "/");
-                    if (setupHttps)
+                    if (ip.AddressFamily == AddressFamily.InterNetwork || (ip.AddressFamily == AddressFamily.InterNetworkV6 && RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) ||!onlyLocal)
                     {
-                        if(!prefixes.Contains("https://" + ipp + ":" + port + "/")) prefixes.Add("https://" + ipp + ":" + port + "/");
+                        string ipp = ip.ToString();
+                        //if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) ipp = "[" + ipp + "]";
+                        ipp = new IPEndPoint(IPAddress.Parse(ipp), port).ToString();
+                        if (!prefixes.Contains("http://" + ipp + "/")) prefixes.Add("http://" + ipp + "/");
+                        if (setupHttps)
+                        {
+                            if (!prefixes.Contains("https://" + ipp + "/")) prefixes.Add("https://" + ipp + ":" + port + "/");
+                        }
                     }
+                    
                 }
             }
             //foreach (string p in prefixes) Logger.Log(p);
