@@ -1,0 +1,3 @@
+D:\Visual Studio\ComputerUtils\ComputerUtils\obj\Debug\netstandard2.0\ComputerUtils.csproj.AssemblyReference.cache
+D:\Visual Studio\ComputerUtils\ComputerUtils\obj\Debug\netstandard2.0\ComputerUtils.GeneratedMSBuildEditorConfig.editorconfig
+D:\Visual Studio\ComputerUtils\ComputerUtils\obj\Debug\netstandard2.0\ComputerUtils.csproj.CoreCompileInputs.cache

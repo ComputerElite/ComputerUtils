@@ -13,8 +13,8 @@ namespace ComputerUtils.Camera
         private VideoCapabilities[] snapshotCapabilities;
         private ArrayList listCamera = new ArrayList();
         public static string usbcamera;
-        public System.Drawing.Bitmap lastFrame = new System.Drawing.Bitmap(1, 1);
-        public delegate void FrameRecieved(System.Drawing.Bitmap frame);
+        public Bitmap lastFrame = new Bitmap(1, 1);
+        public delegate void FrameRecieved(Bitmap frame);
         public event FrameRecieved FrameRecievedEvent;
         //public string pathFolder = Application.StartupPath + @"\ImageCapture\";
 

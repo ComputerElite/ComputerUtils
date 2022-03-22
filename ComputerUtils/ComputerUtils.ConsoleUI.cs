@@ -7,7 +7,6 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Threading;
 
 namespace ComputerUtils.ConsoleUi
 {
@@ -298,6 +297,7 @@ namespace ComputerUtils.ConsoleUi
             {
                 while(true)
                 {
+                    if(aborted) return;
                     UpdateProgress(currentText);
                     Thread.Sleep(msPerSpin);
                 }
@@ -308,7 +308,6 @@ namespace ComputerUtils.ConsoleUi
         public void StopSpinningWheel()
         {
             aborted = true;
-            spinningWheelThread.Abort();
             Console.WriteLine();
         }
 
