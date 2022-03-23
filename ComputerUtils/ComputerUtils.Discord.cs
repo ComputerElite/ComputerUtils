@@ -33,6 +33,11 @@ namespace ComputerUtils.Discord
         {
             SendMessage(new DiscordWebhookMessage { username = userName, avatar_url = userIcon, embeds = new List<DiscordEmbed> { new DiscordEmbed() { color = color, title = titel, description = description, footer = new DiscordEmbedFooter { text = footer, icon_url = footerIcon }, image = new DiscordEmbedImage { url = imageUrl }, author = new DiscordEmbedAuthor { name = authorName, icon_url = authorIcon, url = authorUrl } } } });
         }
+
+        public void SendEmbed(DiscordEmbed embed, string username, string userIcon)
+        {
+            SendMessage(new DiscordWebhookMessage { username = username, avatar_url = userIcon, embeds = new List<DiscordEmbed> { embed } });
+        }
     }
 
     public class DiscordWebhookMessage
