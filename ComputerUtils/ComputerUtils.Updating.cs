@@ -162,6 +162,7 @@ namespace ComputerUtils.Updating
         /// <param name="workingDir"></param>
         public static void UpdateNetApp(string dllName, string workingDir = "")
         {
+            Logger.SetLogFile("updatelog.log");
             Logger.Log("Replacing everything with zip contents.");
             Thread.Sleep(1000);
             string destDir = new DirectoryInfo(Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory)).Parent.FullName + Path.DirectorySeparatorChar;
@@ -172,6 +173,7 @@ namespace ComputerUtils.Updating
                     String name = entry.FullName;
                     if (name.EndsWith("/")) continue;
                     if (name.Contains("/")) Directory.CreateDirectory(destDir + Path.GetDirectoryName(name));
+                    Logger.Log("Extracting " + name + " to " + destDir + entry.FullName);
                     entry.ExtractToFile(destDir + entry.FullName, true);
                 }
             }
@@ -183,6 +185,11 @@ namespace ComputerUtils.Updating
             };
             Process.Start(i);
             Environment.Exit(0);
+        }
+
+        public static string GetBaseDir()
+        {
+            return AppDomain.CurrentDomain.BaseDirectory;
         }
 
         public static void Restart(string dllName, string workingDir = "")
@@ -202,14 +209,18 @@ namespace ComputerUtils.Updating
         {
             FileManager.RecreateDirectoryIfExisting(AppDomain.CurrentDomain.BaseDirectory + "updater");
             string zip = AppDomain.CurrentDomain.BaseDirectory + "updater" + Path.DirectorySeparatorChar + "update.zip";
+            string destDir = AppDomain.CurrentDomain.BaseDirectory + "updater" + Path.DirectorySeparatorChar;
             Logger.Log("Writing update zip to " + zip);
             File.WriteAllBytes(zip, updateZip);
-            Logger.Log("Duplicating program for self contained update");
-            foreach (string s in Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory))
+            using (ZipArchive archive = ZipFile.OpenRead(zip))
             {
-                if (s.EndsWith("zip")) continue;
-                Logger.Log("Copying " + s);
-                File.Copy(s, AppDomain.CurrentDomain.BaseDirectory + "updater" + Path.DirectorySeparatorChar + Path.GetFileName(s), true);
+                foreach (ZipArchiveEntry entry in archive.Entries)
+                {
+                    String name = entry.FullName;
+                    if (name.EndsWith("/")) continue;
+                    if (name.Contains("/")) Directory.CreateDirectory(destDir + Path.GetDirectoryName(name));
+                    entry.ExtractToFile(destDir + entry.FullName, true);
+                }
             }
             ProcessStartInfo i = new ProcessStartInfo
             {
