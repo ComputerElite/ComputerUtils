@@ -196,7 +196,7 @@ namespace ComputerUtils.Updating
         {
             ProcessStartInfo i = new ProcessStartInfo
             {
-                Arguments = "\"" + AppDomain.CurrentDomain.BaseDirectory + "updater" + Path.DirectorySeparatorChar + dllName + "\" update --workingdir \"" + workingDir + "\"",
+                Arguments = "\"" + AppDomain.CurrentDomain.BaseDirectory + dllName + "\" --workingdir \"" + workingDir + "\"",
                 UseShellExecute = true,
                 FileName = "dotnet"
             };
