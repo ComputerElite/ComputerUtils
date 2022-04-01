@@ -25,6 +25,8 @@ namespace ComputerUtils.Webserver
         public ServerValueObject notFoundPage = new ServerValueObject("404 Not found - The requested item couldn't be found", false, "text/plain", 404);
         public ServerValueObject accessDeniedPage = new ServerValueObject("403 Access denied - You do not have access to view this item", false, "text/plain", 403);
         public Dictionary<string, string> defaultResponseHeaders = new Dictionary<string, string>() { { "Access-Control-Allow-Origin", "*" }, { "charset", "UTF-8" } };
+        public List<CacheResponse> cache = new List<CacheResponse>();
+        public int CacheValidityInSeconds = 3600;
         public int[] ports = new int[0];
         public bool setupHttps = false;
         public string[] otherPrefixes = new string[0];
@@ -118,6 +120,33 @@ namespace ComputerUtils.Webserver
             serverThread.Start();
         }
 
+        public CacheResponse GetCacheResponse(ServerRequest request)
+        {
+            return cache.FirstOrDefault(x => x.method == request.method && x.path == request.path); 
+        }
+
+        public void AddCacheResponse(ServerRequest request)
+        {
+            CacheResponse res = new CacheResponse();
+            res.path = request.path;
+            res.method = request.method;
+            res.details= request.serverRequestDetails;
+            res.validilityTime = DateTime.Now.AddSeconds(CacheValidityInSeconds);
+            cache.Add(res);
+        }
+
+        public void RemoveCacheResponse(CacheResponse res)
+        {
+            for(int i = 0; i < cache.Count; i++)
+            {
+                if (cache[i].method == res.method && cache[i].path == res.path)
+                {
+                    cache.RemoveAt(i);
+                    break;
+                }
+            }
+        }
+
         public List<string> GetPrefixes()
         {
             List<string> prefixes = new List<string>();
@@ -167,9 +196,9 @@ namespace ComputerUtils.Webserver
             defaultResponseHeaders = headers;
         }
 
-        public void AddRoute(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true)
+        public void AddRoute(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false)
         {
-            routes.Add(new Route(method, path, action, onlyCheckBeginning, ignoreCase, ignoreEnd));
+            routes.Add(new Route(method, path, action, onlyCheckBeginning, ignoreCase, ignoreEnd, cache));
         }
 
         public void RemoveRoute(string method, string path)
@@ -178,27 +207,27 @@ namespace ComputerUtils.Webserver
             if (match != null) routes.Remove(match);
         }
 
-        public void AddRouteFile(string path, string filePath, bool ignoreCase = true, bool ignoreEnd = true)
+        public void AddRouteFile(string path, string filePath, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false)
         {
             string contentType = GetContentTpe(filePath);
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
                 ServerRequest.SendFile(filePath);
                 return true;
-            }), false, ignoreCase, ignoreEnd);
+            }), false, ignoreCase, ignoreEnd, cache);
         }
 
-        public void AddRouteFile(string path, string filePath, Dictionary<string, string> replace, bool ignoreCase = true, bool ignoreEnd = true)
+        public void AddRouteFile(string path, string filePath, Dictionary<string, string> replace, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false)
         {
             string contentType = GetContentTpe(filePath);
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
                 ServerRequest.SendFile(filePath, replace);
                 return true;
-            }), false, ignoreCase, ignoreEnd);
+            }), false, ignoreCase, ignoreEnd, cache);
         }
 
-        public void AddRouteFolderWithFiles(string path, string folderPath, bool ignoreCase = true, bool ignoreEnd = true)
+        public void AddRouteFolderWithFiles(string path, string folderPath, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false)
         {
             if (!folderPath.EndsWith("\\") && folderPath.Length > 0) folderPath += Path.DirectorySeparatorChar;
             if (path.EndsWith("/")) path = path.Substring(0, path.Length - 1);
@@ -209,7 +238,7 @@ namespace ComputerUtils.Webserver
                 if (File.Exists(file)) ServerRequest.SendFile(file);
                 else ServerRequest.Send404();
                 return true;
-            }), true, ignoreCase, ignoreEnd);
+            }), true, ignoreCase, ignoreEnd, cache);
         }
 
         public void AddWSRoute(string path, Action<SocketServerRequest> action, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true)
@@ -325,6 +354,31 @@ namespace ComputerUtils.Webserver
         }
     }
 
+    public class CacheResponse
+    {
+        public string path = "";
+        public string method = "GET";
+        public ServerRequestDetails details = new ServerRequestDetails();
+        public DateTime validilityTime = DateTime.MinValue;
+
+        public bool UseRouteCache(ServerRequest request, Func<ServerRequest, bool> action)
+        {
+            if(validilityTime < DateTime.Now)
+            {
+                //Logger.Log("Requesting data from action. Cache length: " + request.server.cache.Count);
+                action(request);
+                request.server.RemoveCacheResponse(this);
+                request.server.AddCacheResponse(request);
+            } else
+            {
+                //Logger.Log("Sending data from cache. Cache length: " + request.server.cache.Count);
+                request.SendData(details.sentData, details.sentContentType, details.sentStatusCode, details.sentCloseRequest, details.sentHeaders);
+            }
+            
+            return true;
+        }
+    }
+
     public class Route : IDisposable
     {
         public string method { get; set; } = "GET";
@@ -332,9 +386,10 @@ namespace ComputerUtils.Webserver
         public bool onlyCheckBeginning { get; set; } = false;
         public bool ignoreCase { get; set; } = true;
         public bool ignoreEnd { get; set; } = true;
+        public bool cache { get; set; } = false;
         public Func<ServerRequest, bool> action { get; set; } = null;
 
-        public Route(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning, bool ignoreCase, bool ignoreEnd)
+        public Route(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning, bool ignoreCase, bool ignoreEnd, bool cache)
         {
             this.method = method;
             this.path = path;
@@ -344,6 +399,7 @@ namespace ComputerUtils.Webserver
             this.onlyCheckBeginning = onlyCheckBeginning;
             this.ignoreCase = ignoreCase;
             this.ignoreEnd = ignoreEnd;
+            this.cache = cache;
         }
 
         public bool UseRoute(ServerRequest request)
@@ -363,9 +419,21 @@ namespace ComputerUtils.Webserver
             if((requestPathTmp == pathTmp || onlyCheckBeginning && requestPathTmp.StartsWith(pathTmp)) && request.method == this.method)
             {
                 if(request.path.Length >= path.Length) request.pathDiff = request.path.Substring(path.Length);
-                return action(request);
+                return UseRouteWithCache(request);
             }
             return false;
+        }
+
+        public bool UseRouteWithCache(ServerRequest request)
+        {
+            if(!cache) return action(request);
+            CacheResponse c = request.server.GetCacheResponse(request);
+            if(c == null)
+            {
+                c = new CacheResponse();
+            }
+            c.UseRouteCache(request, action);
+            return true;
         }
 
         public void Dispose()
@@ -420,6 +488,16 @@ namespace ComputerUtils.Webserver
         }
     }
 
+    public class ServerRequestDetails
+    {
+        public byte[] sentData { get; set; } = new byte[0];
+        public string sentContentType = "";
+        public Encoding sentContentEncoding = Encoding.UTF8;
+        public int sentStatusCode = 200;
+        public bool sentCloseRequest = true;
+        public Dictionary<string, string> sentHeaders = null;
+    }
+
     public class ServerRequest : IDisposable
     {
         public HttpListenerContext context { get; set; } = null;
@@ -434,6 +512,8 @@ namespace ComputerUtils.Webserver
         public object customObject { get; set; } = null;
         public CookieCollection cookies { get; set; } = null;
         public NameValueCollection queryString { get; set; } = null;
+
+        public ServerRequestDetails serverRequestDetails { get; set; } = new ServerRequestDetails();
 
         public ServerRequest(HttpListenerContext context, HttpServer server)
         {
@@ -542,6 +622,12 @@ namespace ComputerUtils.Webserver
             }
             Logger.Log("    Sending " + data.LongLength + " bytes of data to " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " from " + path);
             context.Response.OutputStream.WriteAsync(data, 0, data.Length);
+            serverRequestDetails.sentData = data;
+            serverRequestDetails.sentContentType = contentType;
+            serverRequestDetails.sentContentEncoding = contentEncoding;
+            serverRequestDetails.sentStatusCode = statusCode;
+            serverRequestDetails.sentCloseRequest = closeRequest;
+            serverRequestDetails.sentHeaders = headers;
             if (closeRequest) Close();
             closed = closeRequest;
         }
