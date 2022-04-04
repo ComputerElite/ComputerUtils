@@ -122,7 +122,14 @@ namespace ComputerUtils.Webserver
 
         public CacheResponse GetCacheResponse(ServerRequest request)
         {
-            return cache.FirstOrDefault(x => x.method == request.method && x.path == request.path); 
+            for (int i = 0; i < cache.Count; i++)
+            {
+                if (cache[i].method == request.method && cache[i].path == request.path)
+                {
+                    return cache[i];
+                }
+            }
+            return null;
         }
 
         public void AddCacheResponse(ServerRequest request)
@@ -365,13 +372,13 @@ namespace ComputerUtils.Webserver
         {
             if(validilityTime < DateTime.Now)
             {
-                //Logger.Log("Requesting data from action. Cache length: " + request.server.cache.Count);
+                Logger.Log("Requesting data from action. Cache length: " + request.server.cache.Count, LoggingType.Debug);
                 action(request);
                 request.server.RemoveCacheResponse(this);
                 request.server.AddCacheResponse(request);
             } else
             {
-                //Logger.Log("Sending data from cache. Cache length: " + request.server.cache.Count);
+                Logger.Log("Sending data from cache. Cache length: " + request.server.cache.Count, LoggingType.Debug);
                 request.SendData(details.sentData, details.sentContentType, details.sentStatusCode, details.sentCloseRequest, details.sentHeaders);
             }
             
