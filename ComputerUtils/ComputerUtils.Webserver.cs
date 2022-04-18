@@ -26,7 +26,7 @@ namespace ComputerUtils.Webserver
         public ServerValueObject accessDeniedPage = new ServerValueObject("403 Access denied - You do not have access to view this item", false, "text/plain", 403);
         public Dictionary<string, string> defaultResponseHeaders = new Dictionary<string, string>() { { "Access-Control-Allow-Origin", "*" }, { "charset", "UTF-8" } };
         public List<CacheResponse> cache = new List<CacheResponse>();
-        public int CacheValidityInSeconds = 3600;
+        public int DefaultCacheValidityInSeconds = 3600;
         public int[] ports = new int[0];
         public bool setupHttps = false;
         public string[] otherPrefixes = new string[0];
@@ -122,23 +122,27 @@ namespace ComputerUtils.Webserver
 
         public CacheResponse GetCacheResponse(ServerRequest request)
         {
+            DateTime now = DateTime.Now;
             for (int i = 0; i < cache.Count; i++)
             {
                 if (cache[i].method == request.method && cache[i].path == request.path)
                 {
                     return cache[i];
+                } else if(cache[i].validilityTime < now)
+                {
+                    cache.Remove(cache[i]);
                 }
             }
             return null;
         }
 
-        public void AddCacheResponse(ServerRequest request)
+        public void AddCacheResponse(ServerRequest request, int cacheValidityInSeconds)
         {
             CacheResponse res = new CacheResponse();
             res.path = request.path;
             res.method = request.method;
             res.details= request.serverRequestDetails;
-            res.validilityTime = DateTime.Now.AddSeconds(CacheValidityInSeconds);
+            res.validilityTime = DateTime.Now.AddSeconds(cacheValidityInSeconds == 0 ? DefaultCacheValidityInSeconds : cacheValidityInSeconds);
             cache.Add(res);
         }
 
@@ -203,9 +207,25 @@ namespace ComputerUtils.Webserver
             defaultResponseHeaders = headers;
         }
 
-        public void AddRoute(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false)
+        public void AddRoute(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false, int cacheValidityInSeconds = 0)
         {
-            routes.Add(new Route(method, path, action, onlyCheckBeginning, ignoreCase, ignoreEnd, cache));
+            routes.Add(new Route(method, path, action, onlyCheckBeginning, ignoreCase, ignoreEnd, cache, cacheValidityInSeconds));
+        }
+
+        public void AddRouteRedirect(string method, string path, string target, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true)
+        {
+            routes.Add(new Route(method, path, new Func<ServerRequest, bool>(request =>
+            {
+                string queryString = "?";
+                foreach(string n in request.queryString.AllKeys)
+                {
+                    queryString += n + "=" + request.queryString[n] + "&";
+                }
+                if(queryString.EndsWith("&")) queryString = queryString.Substring(0, queryString.Length - 1);
+                if(!target.EndsWith("/")) target += "/";
+                request.Redirect(target + request.pathDiff + queryString);
+                return true;
+            }), onlyCheckBeginning, ignoreCase, ignoreEnd, false, 0));
         }
 
         public void RemoveRoute(string method, string path)
@@ -368,14 +388,14 @@ namespace ComputerUtils.Webserver
         public ServerRequestDetails details = new ServerRequestDetails();
         public DateTime validilityTime = DateTime.MinValue;
 
-        public bool UseRouteCache(ServerRequest request, Func<ServerRequest, bool> action)
+        public bool UseRouteCache(ServerRequest request, Func<ServerRequest, bool> action, int cacheValidityInSeconds)
         {
             if(validilityTime < DateTime.Now)
             {
                 Logger.Log("Requesting data from action. Cache length: " + request.server.cache.Count, LoggingType.Debug);
                 action(request);
                 request.server.RemoveCacheResponse(this);
-                request.server.AddCacheResponse(request);
+                request.server.AddCacheResponse(request, cacheValidityInSeconds);
             } else
             {
                 Logger.Log("Sending data from cache. Cache length: " + request.server.cache.Count, LoggingType.Debug);
@@ -394,9 +414,10 @@ namespace ComputerUtils.Webserver
         public bool ignoreCase { get; set; } = true;
         public bool ignoreEnd { get; set; } = true;
         public bool cache { get; set; } = false;
+        public int cacheValidityInSeconds { get; set; } = 0;
         public Func<ServerRequest, bool> action { get; set; } = null;
 
-        public Route(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning, bool ignoreCase, bool ignoreEnd, bool cache)
+        public Route(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning, bool ignoreCase, bool ignoreEnd, bool cache, int cacheValidityInSeconds)
         {
             this.method = method;
             this.path = path;
@@ -407,6 +428,7 @@ namespace ComputerUtils.Webserver
             this.ignoreCase = ignoreCase;
             this.ignoreEnd = ignoreEnd;
             this.cache = cache;
+            this.cacheValidityInSeconds = cacheValidityInSeconds;
         }
 
         public bool UseRoute(ServerRequest request)
@@ -439,7 +461,7 @@ namespace ComputerUtils.Webserver
             {
                 c = new CacheResponse();
             }
-            c.UseRouteCache(request, action);
+            c.UseRouteCache(request, action, cacheValidityInSeconds);
             return true;
         }
 
@@ -509,7 +531,7 @@ namespace ComputerUtils.Webserver
     {
         public HttpListenerContext context { get; set; } = null;
         public string path { get; set; } = "/";
-        public string pathDiff { get; set; } = "/";
+        public string pathDiff { get; set; } = "";
         public string method { get; set; } = "GET";
         public HttpServer server { get; set; } = null;
         public bool closed { get; set; } = false;

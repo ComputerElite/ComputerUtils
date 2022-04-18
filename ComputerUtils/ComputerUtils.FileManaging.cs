@@ -111,6 +111,15 @@ namespace ComputerUtils.FileManaging
             return new DirectoryInfo(path);
         }
 
+        public static void DeleteDirectoryIfExisting(string path)
+        {
+            if (Directory.Exists(path))
+            {
+                Logger.Log("Deleting " + path);
+                Directory.Delete(path, true);
+            }
+        }
+
         public static void SetAttributesNormal(DirectoryInfo dir)
         {
             foreach (DirectoryInfo subDir in dir.GetDirectories()) SetAttributesNormal(subDir);

@@ -95,7 +95,7 @@ namespace ComputerUtils.CommandLine
     public class CommandLineCommandContainer
     {
         public List<CommandLineArgument> arguments = new List<CommandLineArgument>();
-        string[] parsedCommand = null;
+        public string[] parsedCommand = null;
 
         public CommandLineCommandContainer(string arguments)
         {

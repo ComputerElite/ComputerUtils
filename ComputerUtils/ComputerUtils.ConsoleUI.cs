@@ -356,13 +356,21 @@ namespace ComputerUtils.ConsoleUi
         {
             if (ETA)
             {
-                long lastPerSec = (long)Math.Round((done - this.done) / (DateTime.Now - lastUpdate).TotalSeconds);
-                last.Add(lastPerSec);
-                if (last.Count > eTARange) last.RemoveAt(0);
-                long avg = 0;
-                foreach (long l in last) avg += l;
-                avg = avg / last.Count;
-                extraText += "  ETA " + (avg == 0 ? "N/A" : SizeConverter.SecondsToBetterString((total - done) / avg));
+                try
+                {
+                    long lastPerSec = (long)Math.Round((done - this.done) / (DateTime.Now - lastUpdate).TotalSeconds);
+                    last.Add(lastPerSec);
+                    if (last.Count > eTARange) last.RemoveAt(0);
+                    long avg = 0;
+                    foreach (long l in last) avg += l;
+                    avg = avg / last.Count;
+                    extraText += "  ETA " + (avg == 0 ? "N/A" : SizeConverter.SecondsToBetterString((total - done) / avg));
+
+                }
+                catch
+                {
+
+                }
             }
             lastUpdate = DateTime.Now;
             this.done = done;
