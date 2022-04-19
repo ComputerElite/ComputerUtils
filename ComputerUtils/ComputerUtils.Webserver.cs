@@ -30,21 +30,19 @@ namespace ComputerUtils.Webserver
         public int[] ports = new int[0];
         public bool setupHttps = false;
         public string[] otherPrefixes = new string[0];
-        public bool onlyLocal = true;
         public Thread serverThread = null;
         
-        public void StartServer(int port, bool setupHttps = false, string[] otherPrefixes = null, bool onlyLocal = true)
+        public void StartServer(int port, bool setupHttps = false, string[] otherPrefixes = null)
         {
-            StartServer(new int[] { port }, setupHttps, otherPrefixes, onlyLocal);
+            StartServer(new int[] { port }, setupHttps, otherPrefixes);
         }
 
-        public void StartServer(int[] ports, bool setupHttps = false, string[] otherPrefixes = null, bool onlyLocal = true)
+        public void StartServer(int[] ports, bool setupHttps = false, string[] otherPrefixes = null)
         {
             Logger.displayLogInConsole = true;
             this.ports = ports;
             this.setupHttps = setupHttps;
             this.otherPrefixes = otherPrefixes == null ? new string[0] : otherPrefixes;
-            this.onlyLocal = onlyLocal;
             HttpListener listener = new HttpListener();
             String hostName = Dns.GetHostName();
             Logger.Log("Host name: " + hostName);
@@ -162,6 +160,15 @@ namespace ComputerUtils.Webserver
         {
             List<string> prefixes = new List<string>();
             IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (int port in ports)
+            {
+                if (setupHttps)
+                {
+                    prefixes.Add("https://*:" + port + "/");
+                }
+
+                prefixes.Add("http://*:" + port + "/");
+            }
             if (otherPrefixes != null)
             {
                 foreach (string p in otherPrefixes)
@@ -173,32 +180,6 @@ namespace ComputerUtils.Webserver
                     }
                 }
             }
-            foreach (int port in ports)
-            {
-                prefixes.Add("http://127.0.0.1:" + port + "/");
-                prefixes.Add("http://localhost:" + port + "/");
-                if (setupHttps)
-                {
-                    prefixes.Add("https://127.0.0.1:" + port + "/");
-                    prefixes.Add("https://localhost:" + port + "/");
-                }
-                foreach (IPAddress ip in host.AddressList)
-                {
-                    if (ip.AddressFamily == AddressFamily.InterNetwork || (ip.AddressFamily == AddressFamily.InterNetworkV6 && RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) ||!onlyLocal)
-                    {
-                        string ipp = ip.ToString();
-                        //if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6) ipp = "[" + ipp + "]";
-                        ipp = new IPEndPoint(IPAddress.Parse(ipp), port).ToString();
-                        if (!prefixes.Contains("http://" + ipp + "/")) prefixes.Add("http://" + ipp + "/");
-                        if (setupHttps)
-                        {
-                            if (!prefixes.Contains("https://" + ipp + "/")) prefixes.Add("https://" + ipp + "/");
-                        }
-                    }
-                    
-                }
-            }
-            //foreach (string p in prefixes) Logger.Log(p);
             return prefixes;
         }
 
