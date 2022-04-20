@@ -77,17 +77,21 @@ namespace ComputerUtils.Webserver
                                     context.Request.Headers["Upgrade"] = "websocket";
                                     context.Request.Headers["Connection"] = "Upgrade";
                                     string uRL = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
-                                    Logger.Log("url is: " + uRL);
+                                    bool found = false;
                                     for (int i = 0; i < wsRoutes.Count; i++)
                                     {
                                         if (wsRoutes[i].UseRoute(uRL))
                                         {
-                                            Logger.Log("Using route");
                                             SocketHandler handler = new SocketHandler(context, this, wsRoutes[i]);
+                                            found = true;
                                             break;
                                         }
                                     }
-                                    Logger.Log("Fuck you");
+                                    if(!found)
+                                    {
+                                        context.Response.StatusCode = 404;
+                                        context.Response.Close();
+                                    }
                                 }
                                 else
                                 {
@@ -676,7 +680,7 @@ namespace ComputerUtils.Webserver
             }
             catch (Exception e)
             {
-                Logger.Log("Fuck I messed up accepting the websocket:\n" + e.ToString());
+                Logger.Log("Websocket failed to get accepted:\n" + e.ToString());
                 context.Response.StatusCode = 500;
                 context.Response.Close();
                 return;
