@@ -71,18 +71,23 @@ namespace ComputerUtils.Webserver
                         {
                             try
                             {
-                                if (context.Request.IsWebSocketRequest)
+                                if (context.Request.IsWebSocketRequest || context.Request.Headers["Sec-WebSocket-Version"] != null)
                                 {
                                     Logger.Log("Websocket connected from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()));
+                                    context.Request.Headers["Upgrade"] = "websocket";
+                                    context.Request.Headers["Connection"] = "Upgrade";
                                     string uRL = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
+                                    Logger.Log("url is: " + uRL);
                                     for (int i = 0; i < wsRoutes.Count; i++)
                                     {
                                         if (wsRoutes[i].UseRoute(uRL))
                                         {
+                                            Logger.Log("Using route");
                                             SocketHandler handler = new SocketHandler(context, this, wsRoutes[i]);
                                             break;
                                         }
                                     }
+                                    Logger.Log("Fuck you");
                                 }
                                 else
                                 {
@@ -162,11 +167,6 @@ namespace ComputerUtils.Webserver
             IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
             foreach (int port in ports)
             {
-                if (setupHttps)
-                {
-                    prefixes.Add("https://*:" + port + "/");
-                }
-
                 prefixes.Add("http://*:" + port + "/");
             }
             if (otherPrefixes != null)
@@ -676,6 +676,7 @@ namespace ComputerUtils.Webserver
             }
             catch (Exception e)
             {
+                Logger.Log("Fuck I messed up accepting the websocket:\n" + e.ToString());
                 context.Response.StatusCode = 500;
                 context.Response.Close();
                 return;
