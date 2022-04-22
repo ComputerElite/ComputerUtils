@@ -147,16 +147,13 @@ namespace ComputerUtils.Updating
                 Console.WriteLine("Duplicating required files");
                 FileManager.DeleteDirectoryIfExisting(exe + "updater");
                 Directory.CreateDirectory(exe + "updater");
-                Console.WriteLine(exe);
                 foreach (string f in Directory.GetFiles(exe))
                 {
                     File.Copy(f, exe + "updater\\" + Path.GetFileName(f), true);
-                    Console.WriteLine(f);
                 }
                 foreach (string f in Directory.GetDirectories(exe))
                 {
-                    if (!f.EndsWith("runtimes") && !f.EndsWith("ref")) continue;
-                    Console.WriteLine(exe + "updater\\" + Path.GetFileName(f));
+                    if (!f.EndsWith("runtimes") && !f.EndsWith("ref")) continue; // directories required by NET 6
                     FileManager.DirectoryCopy(f, exe + "updater\\" + Path.GetFileName(f), true);
                 }
                 string toStart = exe + "updater\\" + Path.GetFileName(exeLocation);
@@ -169,7 +166,6 @@ namespace ComputerUtils.Updating
                     Arguments = "--update",
                     WorkingDirectory = Path.GetDirectoryName(exeLocation)
                 });
-                Console.WriteLine(toStart);
                 Environment.Exit(0);
             } catch(Exception ex)
             {
