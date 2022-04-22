@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading;
 
@@ -140,19 +141,41 @@ namespace ComputerUtils.Updating
 
         public void StartUpdate()
         {
-            Logger.Log("Duplicating exe for update");
-            Console.WriteLine("Duplicating required files");
-            if (Directory.Exists(exe + "updater")) Directory.Delete(exe + "updater", true);
-            Directory.CreateDirectory(exe + "updater");
-            foreach (string f in Directory.GetFiles(exe))
+            try
             {
-                File.Copy(f, exe + "updater\\" + Path.GetFileName(f), true);
+                Logger.Log("Duplicating exe for update");
+                Console.WriteLine("Duplicating required files");
+                FileManager.DeleteDirectoryIfExisting(exe + "updater");
+                Directory.CreateDirectory(exe + "updater");
+                Console.WriteLine(exe);
+                foreach (string f in Directory.GetFiles(exe))
+                {
+                    File.Copy(f, exe + "updater\\" + Path.GetFileName(f), true);
+                    Console.WriteLine(f);
+                }
+                foreach (string f in Directory.GetDirectories(exe))
+                {
+                    if (!f.EndsWith("runtimes") && !f.EndsWith("ref")) continue;
+                    Console.WriteLine(exe + "updater\\" + Path.GetFileName(f));
+                    FileManager.DirectoryCopy(f, exe + "updater\\" + Path.GetFileName(f), true);
+                }
+                string toStart = exe + "updater\\" + Path.GetFileName(exeLocation);
+                if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) toStart = toStart.Replace(".dll", ".exe");
+                Logger.Log("Starting update. Closing program");
+                Console.WriteLine("Starting update.");
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = toStart,
+                    Arguments = "--update",
+                    WorkingDirectory = Path.GetDirectoryName(exeLocation)
+                });
+                Console.WriteLine(toStart);
+                Environment.Exit(0);
+            } catch(Exception ex)
+            {
+                Logger.Log(ex.ToString());
             }
-            string toStart = exe + "updater\\" + Path.GetFileName(exeLocation);
-            Logger.Log("Starting update. Closing program");
-            Console.WriteLine("Starting update.");
-            Process.Start(toStart, "--update");
-            Environment.Exit(0);
+            
         }
 
         /// <summary>
