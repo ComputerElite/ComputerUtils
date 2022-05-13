@@ -25,34 +25,40 @@ namespace ComputerUtils.Android.Webserver
         public ServerValueObject notFoundPage = new ServerValueObject("404 Not found - The requested item couldn't be found", false, "text/plain", 404);
         public ServerValueObject accessDeniedPage = new ServerValueObject("403 Access denied - You do not have access to view this item", false, "text/plain", 403);
         public Dictionary<string, string> defaultResponseHeaders = new Dictionary<string, string>() { { "Access-Control-Allow-Origin", "*" }, { "charset", "UTF-8" } };
+        public List<CacheResponse> cache = new List<CacheResponse>();
+        public int DefaultCacheValidityInSeconds = 3600;
         public int[] ports = new int[0];
         public bool setupHttps = false;
         public string[] otherPrefixes = new string[0];
-        public bool onlyLocal = true;
         public Thread serverThread = null;
-        public List<string> ips = new List<string>();
-
-        public void StartServer(int port, bool setupHttps = false, string[] otherPrefixes = null, bool onlyLocal = true)
+        
+        public void StartServer(int port, bool setupHttps = false, string[] otherPrefixes = null)
         {
-            StartServer(new int[] { port }, setupHttps, otherPrefixes, onlyLocal);
+            StartServer(new int[] { port }, setupHttps, otherPrefixes);
         }
 
-        public void StartServer(int[] ports, bool setupHttps = false, string[] otherPrefixes = null, bool onlyLocal = true)
+        public void StartServer(int[] ports, bool setupHttps = false, string[] otherPrefixes = null)
         {
             Logger.displayLogInConsole = true;
             this.ports = ports;
             this.setupHttps = setupHttps;
             this.otherPrefixes = otherPrefixes == null ? new string[0] : otherPrefixes;
-            this.onlyLocal = onlyLocal;
             HttpListener listener = new HttpListener();
             String hostName = Dns.GetHostName();
             Logger.Log("Host name: " + hostName);
-            foreach (string prefix in GetPrefixes())
+            foreach(string prefix in GetPrefixes())
             {
-                listener.Prefixes.Add(prefix);
-                Logger.Log("Server listening on " + prefix);
+                Logger.Log("Server will listen on " + prefix);
+                try
+                {
+                    listener.Prefixes.Add(prefix);
+                } catch(Exception e)
+                {
+                    Logger.Log("Actually nvm that. It won't listen on " + prefix + " :\n" + e.ToString());
+                }
+                
             }
-
+            
             serverThread = new Thread(() =>
             {
                 listener.Start();
@@ -65,17 +71,26 @@ namespace ComputerUtils.Android.Webserver
                         {
                             try
                             {
-                                if (context.Request.IsWebSocketRequest)
+                                if (context.Request.IsWebSocketRequest || context.Request.Headers["Sec-WebSocket-Version"] != null)
                                 {
-                                    Logger.Log("Websocket connected from " + context.Request.RemoteEndPoint);
+                                    Logger.Log("Websocket connected from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()));
+                                    context.Request.Headers["Upgrade"] = "websocket";
+                                    context.Request.Headers["Connection"] = "Upgrade";
                                     string uRL = DecodeUrlString(context.Request.Url.AbsolutePath);
+                                    bool found = false;
                                     for (int i = 0; i < wsRoutes.Count; i++)
                                     {
                                         if (wsRoutes[i].UseRoute(uRL))
                                         {
                                             SocketHandler handler = new SocketHandler(context, this, wsRoutes[i]);
+                                            found = true;
                                             break;
                                         }
+                                    }
+                                    if(!found)
+                                    {
+                                        context.Response.StatusCode = 404;
+                                        context.Response.Close();
                                     }
                                 }
                                 else
@@ -92,10 +107,12 @@ namespace ComputerUtils.Android.Webserver
                                         if (routes[i].UseRoute(request)) break;
                                     }
                                     if (!request.closed) request.Send404();
+                                    request.Dispose();
                                 }
                             }
                             catch (Exception e)
                             {
+                                context.Response.Close();
                                 Logger.Log("An error occured while handling a request:\n" + e.ToString(), LoggingType.Error);
                             }
                         });
@@ -110,37 +127,60 @@ namespace ComputerUtils.Android.Webserver
             serverThread.Start();
         }
 
+        public CacheResponse GetCacheResponse(ServerRequest request)
+        {
+            DateTime now = DateTime.Now;
+            for (int i = 0; i < cache.Count; i++)
+            {
+                if (cache[i].method == request.method && cache[i].path == request.path)
+                {
+                    return cache[i];
+                } else if(cache[i].validilityTime < now)
+                {
+                    cache.Remove(cache[i]);
+                }
+            }
+            return null;
+        }
+
+        public void AddCacheResponse(ServerRequest request, int cacheValidityInSeconds)
+        {
+            CacheResponse res = new CacheResponse();
+            res.path = request.path;
+            res.method = request.method;
+            res.details= request.serverRequestDetails;
+            res.validilityTime = DateTime.Now.AddSeconds(cacheValidityInSeconds == 0 ? DefaultCacheValidityInSeconds : cacheValidityInSeconds);
+            cache.Add(res);
+        }
+
+        public void RemoveCacheResponse(CacheResponse res)
+        {
+            for(int i = 0; i < cache.Count; i++)
+            {
+                if (cache[i].method == res.method && cache[i].path == res.path)
+                {
+                    cache.RemoveAt(i);
+                    break;
+                }
+            }
+        }
+
         public List<string> GetPrefixes()
         {
             List<string> prefixes = new List<string>();
             IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
-            ips = new List<string>();
+            foreach (int port in ports)
+            {
+                prefixes.Add("http://*:" + port + "/");
+            }
             if (otherPrefixes != null)
             {
                 foreach (string p in otherPrefixes)
                 {
-                    prefixes.Add(p);
+                    //prefixes.Add(p + "/");
                     foreach (int port in ports)
                     {
                         prefixes.Add(p + ":" + port + "/");
-                    }
-                }
-            }
-            foreach (int port in ports)
-            {
-                prefixes.Add("http://127.0.0.1:" + port + "/");
-                if (setupHttps)
-                {
-                    prefixes.Add("https://127.0.0.1:" + port + "/");
-                }
-                foreach (IPAddress ip in host.AddressList)
-                {
-                    if (onlyLocal && ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) continue;
-                    ips.Add("http://" + ip.ToString() + ":" + port + "/");
-                    prefixes.Add("http://" + ip.ToString() + ":" + port + "/");
-                    if (setupHttps)
-                    {
-                        prefixes.Add("https://" + ip.ToString() + ":" + port + "/");
                     }
                 }
             }
@@ -152,9 +192,25 @@ namespace ComputerUtils.Android.Webserver
             defaultResponseHeaders = headers;
         }
 
-        public void AddRoute(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true)
+        public void AddRoute(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false, int cacheValidityInSeconds = 0)
         {
-            routes.Add(new Route(method, path, action, onlyCheckBeginning, ignoreCase, ignoreEnd));
+            routes.Add(new Route(method, path, action, onlyCheckBeginning, ignoreCase, ignoreEnd, cache, cacheValidityInSeconds));
+        }
+
+        public void AddRouteRedirect(string method, string path, string target, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true)
+        {
+            routes.Add(new Route(method, path, new Func<ServerRequest, bool>(request =>
+            {
+                string queryString = "?";
+                foreach(string n in request.queryString.AllKeys)
+                {
+                    queryString += n + "=" + request.queryString[n] + "&";
+                }
+                if(queryString.EndsWith("&")) queryString = queryString.Substring(0, queryString.Length - 1);
+                if(!target.EndsWith("/")) target += "/";
+                request.Redirect(target + request.pathDiff + queryString);
+                return true;
+            }), onlyCheckBeginning, ignoreCase, ignoreEnd, false, 0));
         }
 
         public void RemoveRoute(string method, string path)
@@ -163,72 +219,38 @@ namespace ComputerUtils.Android.Webserver
             if (match != null) routes.Remove(match);
         }
 
-        public void AddRouteFile(string path, string filePath, bool ignoreCase = true, bool ignoreEnd = true)
+        public void AddRouteFile(string path, string filePath, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false)
         {
             string contentType = GetContentTpe(filePath);
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
                 ServerRequest.SendFile(filePath);
                 return true;
-            }), false, ignoreCase, ignoreEnd);
+            }), false, ignoreCase, ignoreEnd, cache);
         }
 
-        public void AddRouteFile(string path, string filePath, Dictionary<string, string> replace, bool ignoreCase = true, bool ignoreEnd = true)
+        public void AddRouteFile(string path, string filePath, Dictionary<string, string> replace, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false)
         {
             string contentType = GetContentTpe(filePath);
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
                 ServerRequest.SendFile(filePath, replace);
                 return true;
-            }), false, ignoreCase, ignoreEnd);
+            }), false, ignoreCase, ignoreEnd, cache);
         }
 
-        public void AddRouteFolderWithFiles(string path, string folderPath, bool ignoreCase = true, bool ignoreEnd = true)
+        public void AddRouteFolderWithFiles(string path, string folderPath, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false)
         {
-            if (!folderPath.EndsWith("\\") && folderPath.Length > 0) folderPath += "\\";
+            if (!folderPath.EndsWith("\\") && folderPath.Length > 0) folderPath += Path.DirectorySeparatorChar;
             if (path.EndsWith("/")) path = path.Substring(0, path.Length - 1);
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
-                string file = folderPath + ServerRequest.path.Substring(path.Length + 1).Replace("/", "\\");
+                string file = folderPath + ServerRequest.path.Substring(path.Length + 1).Replace('/', Path.DirectorySeparatorChar);
                 //Logger.Log(file);
-                if (AssetTools.DoesAssetExist(file)) ServerRequest.SendFile(file);
+                if (File.Exists(file)) ServerRequest.SendFile(file);
                 else ServerRequest.Send404();
                 return true;
-            }), true, ignoreCase, ignoreEnd);
-        }
-
-        public void AddRouteFileFS(string path, string filePath, bool ignoreCase = true, bool ignoreEnd = true)
-        {
-            string contentType = GetContentTpe(filePath);
-            AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
-            {
-                ServerRequest.SendFileFS(filePath);
-                return true;
-            }), false, ignoreCase, ignoreEnd);
-        }
-
-        public void AddRouteFileFS(string path, string filePath, Dictionary<string, string> replace, bool ignoreCase = true, bool ignoreEnd = true)
-        {
-            string contentType = GetContentTpe(filePath);
-            AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
-            {
-                ServerRequest.SendFileFS(filePath, replace);
-                return true;
-            }), false, ignoreCase, ignoreEnd);
-        }
-
-        public void AddRouteFolderWithFilesFS(string path, string folderPath, bool ignoreCase = true, bool ignoreEnd = true)
-        {
-            if (!folderPath.EndsWith("/") && folderPath.Length > 0) folderPath += "/";
-            if (path.EndsWith("/")) path = path.Substring(0, path.Length - 1);
-            AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
-            {
-                string file = folderPath + ServerRequest.path.Substring(path.Length + 1).Replace("\\", "/");
-                //Logger.Log(file);
-                if (File.Exists(file)) ServerRequest.SendFileFS(file);
-                else ServerRequest.Send404();
-                return true;
-            }), true, ignoreCase, ignoreEnd);
+            }), true, ignoreCase, ignoreEnd, cache);
         }
 
         public void AddWSRoute(string path, Action<SocketServerRequest> action, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true)
@@ -269,7 +291,7 @@ namespace ComputerUtils.Android.Webserver
             accessDeniedPage = new ServerValueObject(content, false, "", 403);
         }
 
-        public static string GetContentTpe(String path)
+        public static string GetContentTpe(string path)
         {
             switch (Path.GetExtension(path).ToLower())
             {
@@ -301,11 +323,12 @@ namespace ComputerUtils.Android.Webserver
                     return "audio/vorbis";
                 case ".wav":
                     return "audio/wav";
+                case ".zip":
+                    return "application/zip";
             }
-            return "text/plain";
+            return "application/octet-stream";
         }
 
-        // from https://stackoverflow.com/questions/1405048/how-do-i-decode-a-url-parameter-using-c
         public static string DecodeUrlString(string url)
         {
             string newUrl;
@@ -316,7 +339,8 @@ namespace ComputerUtils.Android.Webserver
     }
 
 
-    public class ServerValueObject
+
+    public class ServerValueObject : IDisposable
     {
         public string value { get; set; } = "";
         public bool isFile { get; set; } = false;
@@ -345,25 +369,62 @@ namespace ComputerUtils.Android.Webserver
                 serverRequest.SendString(value, contentType, status);
             }
         }
+
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+        }
     }
 
-    public class Route
+    public class CacheResponse
+    {
+        public string path = "";
+        public string method = "GET";
+        public ServerRequestDetails details = new ServerRequestDetails();
+        public DateTime validilityTime = DateTime.MinValue;
+
+        public bool UseRouteCache(ServerRequest request, Func<ServerRequest, bool> action, int cacheValidityInSeconds)
+        {
+            if (validilityTime < DateTime.Now)
+            {
+                Logger.Log("Requesting data from action. Cache length: " + request.server.cache.Count, LoggingType.Debug);
+                action(request);
+                request.server.RemoveCacheResponse(this);
+                request.server.AddCacheResponse(request, cacheValidityInSeconds);
+            }
+            else
+            {
+                Logger.Log("Sending data from cache. Cache length: " + request.server.cache.Count, LoggingType.Debug);
+                request.SendData(details.sentData, details.sentContentType, details.sentStatusCode, details.sentCloseRequest, details.sentHeaders);
+            }
+
+            return true;
+        }
+    }
+
+    public class Route : IDisposable
     {
         public string method { get; set; } = "GET";
         public string path { get; set; } = "/";
         public bool onlyCheckBeginning { get; set; } = false;
         public bool ignoreCase { get; set; } = true;
         public bool ignoreEnd { get; set; } = true;
+        public bool cache { get; set; } = false;
+        public int cacheValidityInSeconds { get; set; } = 0;
         public Func<ServerRequest, bool> action { get; set; } = null;
 
-        public Route(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning, bool ignoreCase, bool ignoreEnd)
+        public Route(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning, bool ignoreCase, bool ignoreEnd, bool cache, int cacheValidityInSeconds)
         {
             this.method = method;
             this.path = path;
+            if (!this.path.EndsWith("/")) this.path += "/";
+            if (!this.path.StartsWith("/")) this.path = "/" + this.path;
             this.action = action;
             this.onlyCheckBeginning = onlyCheckBeginning;
             this.ignoreCase = ignoreCase;
             this.ignoreEnd = ignoreEnd;
+            this.cache = cache;
+            this.cacheValidityInSeconds = cacheValidityInSeconds;
         }
 
         public bool UseRoute(ServerRequest request)
@@ -382,13 +443,31 @@ namespace ComputerUtils.Android.Webserver
             }
             if ((requestPathTmp == pathTmp || onlyCheckBeginning && requestPathTmp.StartsWith(pathTmp)) && request.method == this.method)
             {
-                return action(request);
+                if (request.path.Length >= path.Length) request.pathDiff = request.path.Substring(path.Length);
+                return UseRouteWithCache(request);
             }
             return false;
         }
+
+        public bool UseRouteWithCache(ServerRequest request)
+        {
+            if (!cache) return action(request);
+            CacheResponse c = request.server.GetCacheResponse(request);
+            if (c == null)
+            {
+                c = new CacheResponse();
+            }
+            c.UseRouteCache(request, action, cacheValidityInSeconds);
+            return true;
+        }
+
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+        }
     }
 
-    public class WebsocketRoute
+    public class WebsocketRoute : IDisposable
     {
         public string path { get; set; } = "/";
         public bool onlyCheckBeginning { get; set; } = false;
@@ -399,6 +478,8 @@ namespace ComputerUtils.Android.Webserver
         public WebsocketRoute(string path, Action<SocketServerRequest> action, bool onlyCheckBeginning, bool ignoreCase, bool ignoreEnd)
         {
             this.path = path;
+            if (!this.path.EndsWith("/")) this.path += "/";
+            if (!this.path.StartsWith("/")) this.path = "/" + this.path;
             this.action = action;
             this.onlyCheckBeginning = onlyCheckBeginning;
             this.ignoreCase = ignoreCase;
@@ -425,12 +506,28 @@ namespace ComputerUtils.Android.Webserver
             }
             return false;
         }
+
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+        }
+    }
+
+    public class ServerRequestDetails
+    {
+        public byte[] sentData { get; set; } = new byte[0];
+        public string sentContentType = "";
+        public Encoding sentContentEncoding = Encoding.UTF8;
+        public int sentStatusCode = 200;
+        public bool sentCloseRequest = true;
+        public Dictionary<string, string> sentHeaders = null;
     }
 
     public class ServerRequest
     {
         public HttpListenerContext context { get; set; } = null;
         public string path { get; set; } = "/";
+        public string pathDiff { get; set; } = "";
         public string method { get; set; } = "GET";
         public HttpServer server { get; set; } = null;
         public bool closed { get; set; } = false;
@@ -440,6 +537,8 @@ namespace ComputerUtils.Android.Webserver
         public object customObject { get; set; } = null;
         public CookieCollection cookies { get; set; } = null;
         public NameValueCollection queryString { get; set; } = null;
+
+        public ServerRequestDetails serverRequestDetails { get; set; } = new ServerRequestDetails();
 
         public ServerRequest(HttpListenerContext context, HttpServer server)
         {
@@ -451,9 +550,18 @@ namespace ComputerUtils.Android.Webserver
             this.queryString = context.Request.QueryString;
             if (context.Request.HasEntityBody && context.Request.InputStream != Stream.Null)
             {
-                bodyString = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding).ReadToEnd();
-                bodyBytes = context.Request.ContentEncoding.GetBytes(bodyString);
+                byte[] buffer = new byte[16 * 1024];
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    int read;
+                    while ((read = context.Request.InputStream.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        ms.Write(buffer, 0, read);
+                    }
+                    bodyBytes = ms.ToArray();
+                }
                 this.requestBodyContentType = context.Request.ContentType;
+                this.bodyString = context.Request.ContentEncoding.GetString(bodyBytes);
             }
         }
 
@@ -546,19 +654,31 @@ namespace ComputerUtils.Android.Webserver
             {
                 foreach (KeyValuePair<string, string> header in headers) context.Response.Headers[header.Key] = header.Value;
             }
-            Logger.Log("    Sending " + data.LongLength + " bytes of data to " + context.Request.RemoteEndPoint + " from " + path);
+            Logger.Log("    Sending " + data.LongLength + " bytes of data to " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " from " + path);
             context.Response.OutputStream.WriteAsync(data, 0, data.Length);
+            serverRequestDetails.sentData = data;
+            serverRequestDetails.sentContentType = contentType;
+            serverRequestDetails.sentContentEncoding = contentEncoding;
+            serverRequestDetails.sentStatusCode = statusCode;
+            serverRequestDetails.sentCloseRequest = closeRequest;
+            serverRequestDetails.sentHeaders = headers;
             if (closeRequest) Close();
             closed = closeRequest;
         }
 
         public void Close()
         {
+            closed = true;
             context.Response.Close();
+        }
+
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
         }
     }
 
-    public class SocketHandler
+    public class SocketHandler : IDisposable
     {
         public HttpListenerContext context { get; set; } = null;
         public string path { get; set; } = "/";
@@ -580,6 +700,7 @@ namespace ComputerUtils.Android.Webserver
             }
             catch (Exception e)
             {
+                Logger.Log("Websocket failed to get accepted:\n" + e.ToString());
                 context.Response.StatusCode = 500;
                 context.Response.Close();
                 return;
@@ -589,20 +710,37 @@ namespace ComputerUtils.Android.Webserver
                 while (!closed)
                 {
                     byte[] buffer = new byte[4096];
-                    WebSocketReceiveResult result = socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None).Result;
+                    if (socket.State != WebSocketState.Open)
+                    {
+                        closed = true;
+                        Dispose();
+                        return;
+                    }
+                    WebSocketReceiveResult result;
+                    try
+                    {
+                        result = socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None).Result;
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Log("Unable to recieve Websocket. Terminating connection:" + e.ToString(), LoggingType.Warning);
+                        break;
+                    }
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
-                        Logger.Log("Websocket closed by client: " + context.Request.RemoteEndPoint);
+                        Logger.Log("Websocket closed by client: " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()));
+                        closed = true;
                         socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
                     }
                     else
                     {
                         buffer = buffer.TakeWhile((v, index) => buffer.Skip(index).Any(w => w != 0x00)).ToArray();
                         SocketServerRequest socketRequest = new SocketServerRequest(context, server, this, result, buffer);
-                        Logger.Log("Websocket from " + context.Request.RemoteEndPoint + " sent " + socketRequest.bodyString);
+                        Logger.Log("Websocket from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " sent " + socketRequest.bodyString);
                         route.action(socketRequest);
                     }
                 }
+                Dispose();
             });
             t.Start();
         }
@@ -610,12 +748,17 @@ namespace ComputerUtils.Android.Webserver
         public void CloseRequest()
         {
             closed = true;
-            Logger.Log("Websocket closed by server from " + context.Request.RemoteEndPoint);
+            Logger.Log("Websocket closed by server from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()));
             socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+        }
+
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
         }
     }
 
-    public class SocketServerRequest
+    public class SocketServerRequest : IDisposable
     {
         public HttpListenerContext context { get; set; } = null;
         public string path { get; set; } = "/";
@@ -644,7 +787,13 @@ namespace ComputerUtils.Android.Webserver
 
         public void SendData(byte[] data, WebSocketMessageType msgType = WebSocketMessageType.Binary, bool closeRequest = false)
         {
-            Logger.Log("    Sending " + data.LongLength + " bytes of data to " + context.Request.RemoteEndPoint + " via websocket at " + path);
+            if (handler.socket.CloseStatus.HasValue)
+            {
+                handler.closed = true;
+                handler.Dispose();
+                return;
+            }
+            Logger.Log("    Sending " + data.LongLength + " bytes of data to " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " via websocket at " + path);
             handler.socket.SendAsync(new ArraySegment<byte>(data, 0, data.Length), WebSocketMessageType.Text, receiveResult.EndOfMessage, CancellationToken.None);
             if (closeRequest) Close();
         }
@@ -652,6 +801,11 @@ namespace ComputerUtils.Android.Webserver
         public void Close()
         {
             handler.CloseRequest();
+        }
+
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
         }
     }
 }

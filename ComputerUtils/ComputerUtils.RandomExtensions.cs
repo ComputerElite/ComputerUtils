@@ -34,8 +34,13 @@ namespace ComputerUtils.RandomExtensions
 
         public static string CreateToken(int length = 100)
         {
+            return CreateRandom(length, tokenChars);
+        }
+
+        public static string CreateRandom(int length, string characterSet)
+        {
             string token = "";
-            for (int i = 0; i < length; i++) token += tokenChars[random.Next(tokenChars.Length)];
+            for (int i = 0; i < length; i++) token += characterSet[random.Next(characterSet.Length)];
             return token;
         }
     }

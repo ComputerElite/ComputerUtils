@@ -134,8 +134,16 @@ namespace ComputerUtils.Webserver
             {
                 if (cache[i].method == request.method && cache[i].path == request.path)
                 {
+                    if (request.queryString.Count != cache[i].queryStrings.Count) continue;
+                    bool match = true;
+                    foreach(string key in request.queryString.Keys)
+                    {
+                        if (request.queryString[key] != cache[i].queryStrings[key]) match = false;
+                    }
+                    if(!match) continue;
                     return cache[i];
-                } else if(cache[i].validilityTime < now)
+                }
+                if(cache[i].validilityTime < now)
                 {
                     cache.Remove(cache[i]);
                 }
@@ -148,6 +156,7 @@ namespace ComputerUtils.Webserver
             CacheResponse res = new CacheResponse();
             res.path = request.path;
             res.method = request.method;
+            res.queryStrings = request.queryString;
             res.details= request.serverRequestDetails;
             res.validilityTime = DateTime.Now.AddSeconds(cacheValidityInSeconds == 0 ? DefaultCacheValidityInSeconds : cacheValidityInSeconds);
             cache.Add(res);
@@ -370,6 +379,7 @@ namespace ComputerUtils.Webserver
     {
         public string path = "";
         public string method = "GET";
+        public NameValueCollection queryStrings = new NameValueCollection();
         public ServerRequestDetails details = new ServerRequestDetails();
         public DateTime validilityTime = DateTime.MinValue;
 
