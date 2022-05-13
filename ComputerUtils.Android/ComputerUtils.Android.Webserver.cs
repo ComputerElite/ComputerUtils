@@ -31,7 +31,8 @@ namespace ComputerUtils.Android.Webserver
         public bool setupHttps = false;
         public string[] otherPrefixes = new string[0];
         public Thread serverThread = null;
-        
+        public List<string> ips = new List<string>();
+
         public void StartServer(int port, bool setupHttps = false, string[] otherPrefixes = null)
         {
             StartServer(new int[] { port }, setupHttps, otherPrefixes);
@@ -182,6 +183,17 @@ namespace ComputerUtils.Android.Webserver
                     {
                         prefixes.Add(p + ":" + port + "/");
                     }
+                }
+            }
+
+            // add ips
+            foreach (int port in ports)
+            {
+
+                foreach (IPAddress ip in host.AddressList)
+                {
+                    if (ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork && ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetworkV6) continue;
+                    ips.Add("http://" + ip.ToString() + ":" + port + "/");
                 }
             }
             return prefixes;
