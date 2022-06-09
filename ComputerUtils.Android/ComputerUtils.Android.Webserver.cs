@@ -32,6 +32,7 @@ namespace ComputerUtils.Android.Webserver
         public string[] otherPrefixes = new string[0];
         public Thread serverThread = null;
         public List<string> ips = new List<string>();
+        public Action<string> onWebsocketConnectRequest = null;
 
         public void StartServer(int port, bool setupHttps = false, string[] otherPrefixes = null)
         {
@@ -78,6 +79,7 @@ namespace ComputerUtils.Android.Webserver
                                     context.Request.Headers["Upgrade"] = "websocket";
                                     context.Request.Headers["Connection"] = "Upgrade";
                                     string uRL = DecodeUrlString(context.Request.Url.AbsolutePath);
+                                    if(onWebsocketConnectRequest != null) onWebsocketConnectRequest.Invoke(uRL);
                                     bool found = false;
                                     for (int i = 0; i < wsRoutes.Count; i++)
                                     {

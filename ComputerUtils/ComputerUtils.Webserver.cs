@@ -1,4 +1,5 @@
 ﻿using ComputerUtils.Logging;
+using MimeTypes;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -302,40 +303,12 @@ namespace ComputerUtils.Webserver
 
         public static string GetContentTpe(string path)
         {
-            switch (Path.GetExtension(path).ToLower())
-            {
-                case ".png":
-                    return "image/png";
-                case ".gif":
-                    return "image/gif";
-                case ".jpg":
-                    return "image/jpeg";
-                case ".svg":
-                    return "image/svg+xml";
-                case ".mp4":
-                    return "video/mp4";
-                case ".js":
-                    return "application/javascript";
-                case ".html":
-                    return "text/html";
-                case ".json":
-                    return "application/json";
-                case ".tiff":
-                    return "image/tiff";
-                case ".webm":
-                    return "video/webm";
-                case ".css":
-                    return "text/css";
-                case ".mp3":
-                    return "audio/mpeg";
-                case ".ogg":
-                    return "audio/vorbis";
-                case ".wav":
-                    return "audio/wav";
-                case ".zip":
-                    return "application/zip";
-            }
-            return "application/octet-stream";
+            return MimeTypeMap.GetMimeType(Path.GetExtension(path).ToLower());
+        }
+
+        public static string GetFileExtension(string mimeType)
+        {
+            return MimeTypeMap.GetExtension(mimeType.ToLower());
         }
     }
 
@@ -534,6 +507,7 @@ namespace ComputerUtils.Webserver
         public string bodyString { get; set; } = "";
         public string requestBodyContentType { get; set; } = "";
         public object customObject { get; set; } = null;
+        public string remote { get; set; } = "";
         public CookieCollection cookies { get; set; } = null;
         public NameValueCollection queryString { get; set; } = null;
 
@@ -542,6 +516,7 @@ namespace ComputerUtils.Webserver
         public ServerRequest(HttpListenerContext context, HttpServer server)
         {
             this.context = context;
+            this.remote = context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString();
             this.cookies = context.Request.Cookies;
             this.path = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
             this.method = context.Request.HttpMethod;
@@ -566,7 +541,7 @@ namespace ComputerUtils.Webserver
 
         public override string ToString()
         {
-            return method + " " + path + " from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " with body: " + (bodyString.Length > 500 ? bodyString.Substring(0, 500) + " [...]" : bodyString);
+            return method + " " + path + " from " + remote + " with body: " + (bodyString.Length > 500 ? bodyString.Substring(0, 500) + " [...]" : bodyString);
         }
 
         public void Send404()
@@ -724,7 +699,7 @@ namespace ComputerUtils.Webserver
                     {
                         buffer = buffer.TakeWhile((v, index) => buffer.Skip(index).Any(w => w != 0x00)).ToArray();
                         SocketServerRequest socketRequest = new SocketServerRequest(context, server, this, result, buffer);
-                        Logger.Log("Websocket from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " sent " + socketRequest.bodyString);
+                        Logger.Log("Websocket from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " sent " + (socketRequest.bodyString.Length > 500 ? socketRequest.bodyString.Substring(0, 500) + " [...]" : socketRequest.bodyString));
                         route.action(socketRequest);
                     }
                 }
