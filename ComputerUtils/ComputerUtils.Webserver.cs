@@ -251,7 +251,7 @@ namespace ComputerUtils.Webserver
 
         public void AddRouteFolderWithFiles(string path, string folderPath, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false)
         {
-            if (!folderPath.EndsWith("\\") && folderPath.Length > 0) folderPath += Path.DirectorySeparatorChar;
+            if (!folderPath.EndsWith(Path.DirectorySeparatorChar) && folderPath.Length > 0) folderPath += Path.DirectorySeparatorChar;
             if (path.EndsWith("/")) path = path.Substring(0, path.Length - 1);
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {

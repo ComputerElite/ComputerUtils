@@ -2,6 +2,8 @@
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
+using AndroidX.Activity.Result;
+using AndroidX.Activity.Result.Contract;
 using ComputerUtils.Android.Logging;
 using System;
 using System.Collections.Generic;
@@ -96,11 +98,11 @@ namespace ComputerUtils.Android.AndroidTools
 
         public static void InitiateInstallApk(string apkLocation)
         {
-            Intent intent = new Intent(Intent.ActionView);
+            Intent intent = new Intent(Intent.ActionInstallPackage);
             intent.SetDataAndType(FileProvider.GetUriForFile(AndroidCore.context, AndroidCore.context.PackageName + ".provider", new Java.IO.File(apkLocation)), "application/vnd.android.package-archive");
-            //intent.SetFlags(ActivityFlags.ClearWhenTaskReset | ActivityFlags.NewTask);
             intent.SetFlags(ActivityFlags.GrantReadUriPermission);
-            AndroidCore.context.StartActivity(intent);
+            intent.PutExtra(Intent.ExtraReturnResult, true);
+            AndroidCore.launcher.Launch(intent);
         }
     }
 

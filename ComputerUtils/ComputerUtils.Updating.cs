@@ -113,7 +113,7 @@ namespace ComputerUtils.Updating
             c.DownloadFile(e.GetDownload(), exe + "update.zip");
             Logger.Log("Unpacking");
             Console.WriteLine("Unpacking update");
-            string destDir = new DirectoryInfo(Path.GetDirectoryName(exe)).Parent.FullName + "\\";
+            string destDir = new DirectoryInfo(Path.GetDirectoryName(exe)).Parent.FullName + Path.DirectorySeparatorChar;
             string launchableExe = "";
             using (ZipArchive archive = ZipFile.OpenRead(exe + "update.zip"))
             {
@@ -149,14 +149,14 @@ namespace ComputerUtils.Updating
                 Directory.CreateDirectory(exe + "updater");
                 foreach (string f in Directory.GetFiles(exe))
                 {
-                    File.Copy(f, exe + "updater\\" + Path.GetFileName(f), true);
+                    File.Copy(f, exe + "updater" + Path.DirectorySeparatorChar + Path.GetFileName(f), true);
                 }
                 foreach (string f in Directory.GetDirectories(exe))
                 {
                     if (!f.EndsWith("runtimes") && !f.EndsWith("ref")) continue; // directories required by NET 6
-                    FileManager.DirectoryCopy(f, exe + "updater\\" + Path.GetFileName(f), true);
+                    FileManager.DirectoryCopy(f, exe + "updater" + Path.DirectorySeparatorChar + Path.GetFileName(f), true);
                 }
-                string toStart = exe + "updater\\" + Path.GetFileName(exeLocation);
+                string toStart = exe + "updater" + Path.DirectorySeparatorChar + Path.GetFileName(exeLocation);
                 if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) toStart = toStart.Replace(".dll", ".exe");
                 Logger.Log("Starting update. Closing program");
                 Console.WriteLine("Starting update.");

@@ -77,8 +77,8 @@ namespace ComputerUtils.Encryption
             {
                 FileStream ifile = new FileStream(file, FileMode.Open);
 
-                File.Delete(outputDirectory + "\\" + Path.GetFileName(file) + ".key");
-                FileStream kfile = new FileStream(outputDirectory + "\\" + Path.GetFileName(file) + ".key", FileMode.Append);
+                File.Delete(outputDirectory + Path.DirectorySeparatorChar + Path.GetFileName(file) + ".key");
+                FileStream kfile = new FileStream(outputDirectory + Path.DirectorySeparatorChar + Path.GetFileName(file) + ".key", FileMode.Append);
                 FileStream ofile = new FileStream(exe + Path.GetFileName(file), FileMode.Append);
                 if (outputToConsole) Console.Write("0/0 (100%)");
                 for (int i = 1; (long)i * (long)batches < ifile.Length + (long)batches; i++)
@@ -129,18 +129,18 @@ namespace ComputerUtils.Encryption
                 inp.CopyTo(output, 0);
                 k.CopyTo(key, 0);
 
-                File.WriteAllBytes(outputDirectory + "\\" + Path.GetFileName(file) + ".key", key);
+                File.WriteAllBytes(outputDirectory + Path.DirectorySeparatorChar + Path.GetFileName(file) + ".key", key);
                 File.WriteAllBytes(exe + Path.GetFileName(file), output);
             }
             if (overrideSourceFile)
             {
                 File.Delete(file);
-                File.Move(exe + Path.GetFileName(file), outputDirectory + "\\" + Path.GetFileName(file));
+                File.Move(exe + Path.GetFileName(file), outputDirectory + Path.DirectorySeparatorChar + Path.GetFileName(file));
             }
             else
             {
-                File.Delete(outputDirectory + "\\" + Path.GetFileName(file) + ".encr");
-                File.Move(exe + Path.GetFileName(file), outputDirectory + "\\" + Path.GetFileName(file) + ".encr");
+                File.Delete(outputDirectory + Path.DirectorySeparatorChar + Path.GetFileName(file) + ".encr");
+                File.Move(exe + Path.GetFileName(file), outputDirectory + Path.DirectorySeparatorChar + Path.GetFileName(file) + ".encr");
             }
 
         }

@@ -74,7 +74,7 @@ namespace ComputerUtils.CommandLine
             else c.success = true;
             if (c.args.Count >= 1 && removeFirstArgument)
             {
-                c.absoluteApplicationPath = (Path.IsPathRooted(c.args[0]) || File.Exists(c.args[0]) || File.Exists(c.args[0] + ".exe")) ? c.args[0] : location + (location.EndsWith("\\") ? "" : "\\") + c.args[0];
+                c.absoluteApplicationPath = (Path.IsPathRooted(c.args[0]) || File.Exists(c.args[0]) || File.Exists(c.args[0] + ".exe")) ? c.args[0] : location + (location.EndsWith(Path.DirectorySeparatorChar) ? "" : Path.DirectorySeparatorChar) + c.args[0];
                 c.command = c.args[0];
                 c.args.RemoveAt(0);
                 foreach (string s in c.args) c.argsStr += "\"" + s + "\" ";
