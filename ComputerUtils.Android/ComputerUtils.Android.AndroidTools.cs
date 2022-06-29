@@ -102,7 +102,7 @@ namespace ComputerUtils.Android.AndroidTools
             intent.SetDataAndType(FileProvider.GetUriForFile(AndroidCore.context, AndroidCore.context.PackageName + ".provider", new Java.IO.File(apkLocation)), "application/vnd.android.package-archive");
             intent.SetFlags(ActivityFlags.GrantReadUriPermission);
             intent.PutExtra(Intent.ExtraReturnResult, true);
-            AndroidCore.launcher.Launch(intent);
+            AndroidCore.context.StartActivity(intent);
         }
     }
 
