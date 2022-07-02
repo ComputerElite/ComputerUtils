@@ -14,6 +14,11 @@ namespace ComputerUtils.Encryption
         {
             return BitConverter.ToString(sHA256.ComputeHash(Encoding.UTF8.GetBytes(input))).Replace("-", "");
         }
+
+        public static string GetSHA256OfByteArray(byte[] input)
+        {
+            return BitConverter.ToString(sHA256.ComputeHash(input)).Replace("-", "");
+        }
     }
 
     public class PasswordEncryption

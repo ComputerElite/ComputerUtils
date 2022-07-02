@@ -249,6 +249,30 @@ namespace ComputerUtils.Webserver
             }), false, ignoreCase, ignoreEnd, cache);
         }
 
+        public void AddRouteFile(string path, string filePath, Dictionary<string, string> replace, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false, Func<ServerRequest, bool> accessCheck = null)
+        {
+            if (accessCheck == null) return;
+            string contentType = GetContentTpe(filePath);
+            AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
+            {
+                if (!accessCheck.Invoke(ServerRequest)) return true;
+                ServerRequest.SendFile(filePath, replace);
+                return true;
+            }), false, ignoreCase, ignoreEnd, false);
+        }
+
+        public void AddRouteFile(string path, string filePath, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false, Func<ServerRequest, bool> accessCheck = null)
+        {
+            if (accessCheck == null) return;
+            string contentType = GetContentTpe(filePath);
+            AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
+            {
+                if (!accessCheck.Invoke(ServerRequest)) return true;
+                ServerRequest.SendFile(filePath);
+                return true;
+            }), false, ignoreCase, ignoreEnd, false);
+        }
+
         public void AddRouteFolderWithFiles(string path, string folderPath, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false)
         {
             if (!folderPath.EndsWith(Path.DirectorySeparatorChar) && folderPath.Length > 0) folderPath += Path.DirectorySeparatorChar;
@@ -310,6 +334,8 @@ namespace ComputerUtils.Webserver
         {
             return MimeTypeMap.GetExtension(mimeType.ToLower());
         }
+
+        
     }
 
 
@@ -423,7 +449,7 @@ namespace ComputerUtils.Webserver
 
         public bool UseRouteWithCache(ServerRequest request)
         {
-            if(!cache) return action(request);
+            if(!cache || request.server.DefaultCacheValidityInSeconds == 0) return action(request);
             CacheResponse c = request.server.GetCacheResponse(request);
             if(c == null)
             {
