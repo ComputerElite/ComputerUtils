@@ -133,7 +133,7 @@ namespace ComputerUtils.Webserver
             DateTime now = DateTime.Now;
             for (int i = 0; i < cache.Count; i++)
             {
-                if (cache[i].method == request.method && cache[i].path == request.path)
+                if (cache[i].method == request.method && cache[i].path == request.path && cache[i].uA == request.context.Request.UserAgent)
                 {
                     if (request.queryString.Count != cache[i].queryStrings.Count) continue;
                     bool match = true;
@@ -158,6 +158,7 @@ namespace ComputerUtils.Webserver
             res.path = request.path;
             res.method = request.method;
             res.queryStrings = request.queryString;
+            res.uA = request.context.Request.UserAgent;
             res.details= request.serverRequestDetails;
             res.validilityTime = DateTime.Now.AddSeconds(cacheValidityInSeconds == 0 ? DefaultCacheValidityInSeconds : cacheValidityInSeconds);
             cache.Add(res);
@@ -381,6 +382,7 @@ namespace ComputerUtils.Webserver
         public NameValueCollection queryStrings = new NameValueCollection();
         public ServerRequestDetails details = new ServerRequestDetails();
         public DateTime validilityTime = DateTime.MinValue;
+        internal string uA;
 
         public bool UseRouteCache(ServerRequest request, Func<ServerRequest, bool> action, int cacheValidityInSeconds)
         {
