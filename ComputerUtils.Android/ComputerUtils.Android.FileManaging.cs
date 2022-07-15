@@ -117,5 +117,10 @@ namespace ComputerUtils.Android.FileManaging
             foreach (DirectoryInfo subDir in dir.GetDirectories()) SetAttributesNormal(subDir);
             foreach (FileInfo file in dir.GetFiles()) file.Attributes = FileAttributes.Normal;
         }
+
+        public static void DeleteFileIfExisting(string file)
+        {
+            if (File.Exists(file)) File.Delete(file);
+        }
     }
 }

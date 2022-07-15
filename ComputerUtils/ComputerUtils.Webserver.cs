@@ -335,8 +335,6 @@ namespace ComputerUtils.Webserver
         {
             return MimeTypeMap.GetExtension(mimeType.ToLower());
         }
-
-        
     }
 
 
