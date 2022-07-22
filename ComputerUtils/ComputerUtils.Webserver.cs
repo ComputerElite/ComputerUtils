@@ -133,6 +133,14 @@ namespace ComputerUtils.Webserver
             DateTime now = DateTime.Now;
             for (int i = 0; i < cache.Count; i++)
             {
+                Logger.Log("Cache: " + (cache[i] == null), LoggingType.Debug);
+                Logger.Log("Cache method: " + (cache[i].method == null), LoggingType.Debug);
+                Logger.Log("Cache path: " + (cache[i].path == null), LoggingType.Debug);
+                Logger.Log("Cache ua: " + (cache[i].uA == null), LoggingType.Debug);
+                Logger.Log("request: " + (request == null), LoggingType.Debug);
+                Logger.Log("request method: " + (request.method == null), LoggingType.Debug);
+                Logger.Log("request path: " + (request.path == null), LoggingType.Debug);
+                Logger.Log("request ua: " + (request.context.Request.UserAgent == null), LoggingType.Debug);
                 if (cache[i].method == request.method && cache[i].path == request.path && cache[i].uA == request.context.Request.UserAgent)
                 {
                     if (request.queryString.Count != cache[i].queryStrings.Count) continue;
