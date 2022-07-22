@@ -133,14 +133,14 @@ namespace ComputerUtils.Webserver
             DateTime now = DateTime.Now;
             for (int i = 0; i < cache.Count; i++)
             {
-                Logger.Log("Cache: " + (cache[i] == null), LoggingType.Debug);
-                Logger.Log("Cache method: " + (cache[i].method == null), LoggingType.Debug);
-                Logger.Log("Cache path: " + (cache[i].path == null), LoggingType.Debug);
-                Logger.Log("Cache ua: " + (cache[i].uA == null), LoggingType.Debug);
-                Logger.Log("request: " + (request == null), LoggingType.Debug);
-                Logger.Log("request method: " + (request.method == null), LoggingType.Debug);
-                Logger.Log("request path: " + (request.path == null), LoggingType.Debug);
-                Logger.Log("request ua: " + (request.context.Request.UserAgent == null), LoggingType.Debug);
+                if (cache[i] == null) Logger.Log("Cache: ", LoggingType.Debug);
+                if (cache[i].method == null) Logger.Log("Cache method: ", LoggingType.Debug);
+                if (cache[i].path == null) Logger.Log("Cache path: ", LoggingType.Debug);
+                if (cache[i].uA == null) Logger.Log("Cache ua: ", LoggingType.Debug);
+                if (request == null) Logger.Log("request: ", LoggingType.Debug);
+                if (request.method == null) Logger.Log("request method: ", LoggingType.Debug);
+                if (request.path == null) Logger.Log("request path: ", LoggingType.Debug);
+                if (request.context.Request.UserAgent == null) Logger.Log("request ua: ", LoggingType.Debug);
                 if (cache[i].method == request.method && cache[i].path == request.path && cache[i].uA == request.context.Request.UserAgent)
                 {
                     if (request.queryString.Count != cache[i].queryStrings.Count) continue;
