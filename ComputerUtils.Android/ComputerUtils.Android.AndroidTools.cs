@@ -8,6 +8,7 @@ using ComputerUtils.Android.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using Xamarin.Essentials;
 using static Xamarin.Essentials.Permissions;
 using Uri = Android.Net.Uri;

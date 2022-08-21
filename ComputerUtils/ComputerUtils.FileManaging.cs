@@ -39,6 +39,12 @@ namespace ComputerUtils.FileManaging
                 return dir;
             }
         }
+
+        public static void DeleteFileIfExisting(string file)
+        {
+            if(File.Exists(file)) File.Delete(file);
+        }
+
         public static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs, bool output = true)
         {
             // Get the subdirectories for the specified directory.

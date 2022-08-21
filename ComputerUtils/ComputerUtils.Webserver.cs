@@ -25,7 +25,10 @@ namespace ComputerUtils.Webserver
         public Func<ServerRequest, bool> accessCheck = new Func<ServerRequest, bool>(s => { return true; });
         public ServerValueObject notFoundPage = new ServerValueObject("404 Not found - The requested item couldn't be found", false, "text/plain", 404);
         public ServerValueObject accessDeniedPage = new ServerValueObject("403 Access denied - You do not have access to view this item", false, "text/plain", 403);
-        public Dictionary<string, string> defaultResponseHeaders = new Dictionary<string, string>() { { "Access-Control-Allow-Origin", "*" }, { "charset", "UTF-8" } };
+        public Dictionary<string, string> defaultResponseHeaders = new Dictionary<string, string>() {
+            { "Access-Control-Allow-Origin", "*" },
+            { "charset", "UTF-8" }
+        };
         public List<CacheResponse> cache = new List<CacheResponse>();
         public int DefaultCacheValidityInSeconds = 3600;
         public int[] ports = new int[0];
@@ -209,9 +212,9 @@ namespace ComputerUtils.Webserver
             defaultResponseHeaders = headers;
         }
 
-        public void AddRoute(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false, int cacheValidityInSeconds = 0)
+        public void AddRoute(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false, int cacheValidityInSeconds = 0, bool clientCache = false, int clientCacheValidityInSeconds = 0)
         {
-            routes.Add(new Route(method, path, action, onlyCheckBeginning, ignoreCase, ignoreEnd, cache, cacheValidityInSeconds));
+            routes.Add(new Route(method, path, action, onlyCheckBeginning, ignoreCase, ignoreEnd, cache, cacheValidityInSeconds, clientCache, clientCacheValidityInSeconds));
         }
 
         public void AddRouteRedirect(string method, string path, string target, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true)
@@ -227,7 +230,7 @@ namespace ComputerUtils.Webserver
                 if(!target.EndsWith("/")) target += "/";
                 request.Redirect(target + request.pathDiff + queryString);
                 return true;
-            }), onlyCheckBeginning, ignoreCase, ignoreEnd, false, 0));
+            }), onlyCheckBeginning, ignoreCase, ignoreEnd, false, 0, false, 0));
         }
 
         public void RemoveRoute(string method, string path)
@@ -243,41 +246,44 @@ namespace ComputerUtils.Webserver
             {
                 ServerRequest.SendFile(filePath);
                 return true;
-            }), false, ignoreCase, ignoreEnd, cache);
+            }), false, ignoreCase, ignoreEnd, cache, 0, true);
         }
 
-        public void AddRouteFile(string path, string filePath, Dictionary<string, string> replace, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false)
+        public void AddRouteFile(string path, string filePath)
+        {
+            AddRouteFile(path, filePath, true, true, false);
+        }
+
+        public void AddRouteFile(string path, string filePath, Dictionary<string, string> replace, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false, int cacheValidityInSeconds = 0, bool clientCache = false, int clientCacheValidityInSeconds = 0)
         {
             string contentType = GetContentTpe(filePath);
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
                 ServerRequest.SendFile(filePath, replace);
                 return true;
-            }), false, ignoreCase, ignoreEnd, cache);
+            }), false, ignoreCase, ignoreEnd, cache, cacheValidityInSeconds, clientCache, clientCacheValidityInSeconds);
         }
 
         public void AddRouteFile(string path, string filePath, Dictionary<string, string> replace, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false, Func<ServerRequest, bool> accessCheck = null)
         {
-            if (accessCheck == null) return;
+            if (accessCheck == null)
+            {
+                Logger.Log("accessCheck is null for " + path + ". cache is " + cache, LoggingType.Important);
+                AddRouteFile(path, filePath, replace, ignoreCase, ignoreEnd, cache, 0, cache, 0);
+                return;
+            }
             string contentType = GetContentTpe(filePath);
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
                 if (!accessCheck.Invoke(ServerRequest)) return true;
                 ServerRequest.SendFile(filePath, replace);
                 return true;
-            }), false, ignoreCase, ignoreEnd, false);
+            }), false, ignoreCase, ignoreEnd, false, 0, false);
         }
 
         public void AddRouteFile(string path, string filePath, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false, Func<ServerRequest, bool> accessCheck = null)
         {
-            if (accessCheck == null) return;
-            string contentType = GetContentTpe(filePath);
-            AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
-            {
-                if (!accessCheck.Invoke(ServerRequest)) return true;
-                ServerRequest.SendFile(filePath);
-                return true;
-            }), false, ignoreCase, ignoreEnd, false);
+            AddRouteFile(path, filePath, null, ignoreCase, ignoreEnd, cache, accessCheck);
         }
 
         public void AddRouteFolderWithFiles(string path, string folderPath, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false)
@@ -414,10 +420,12 @@ namespace ComputerUtils.Webserver
         public bool ignoreCase { get; set; } = true;
         public bool ignoreEnd { get; set; } = true;
         public bool cache { get; set; } = false;
+        public bool clientCache { get; set; } = false;
         public int cacheValidityInSeconds { get; set; } = 0;
+        public int clientCacheValidityInSeconds { get; set; } = 0;
         public Func<ServerRequest, bool> action { get; set; } = null;
 
-        public Route(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning, bool ignoreCase, bool ignoreEnd, bool cache, int cacheValidityInSeconds)
+        public Route(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning, bool ignoreCase, bool ignoreEnd, bool cache, int cacheValidityInSeconds, bool clientCache, int clientCacheValidityInSeconds)
         {
             this.method = method;
             this.path = path;
@@ -429,6 +437,8 @@ namespace ComputerUtils.Webserver
             this.ignoreEnd = ignoreEnd;
             this.cache = cache;
             this.cacheValidityInSeconds = cacheValidityInSeconds;
+            this.clientCache = clientCache;
+            this.clientCacheValidityInSeconds = clientCacheValidityInSeconds;
         }
 
         public bool UseRoute(ServerRequest request)
@@ -455,7 +465,13 @@ namespace ComputerUtils.Webserver
 
         public bool UseRouteWithCache(ServerRequest request)
         {
-            if(!cache || request.server.DefaultCacheValidityInSeconds == 0) return action(request);
+            if (clientCache)
+            {
+                if (clientCacheValidityInSeconds != 0) request.automaticHeaders.Add("Cache-Control", "max-age=" + clientCacheValidityInSeconds);
+                else if (cacheValidityInSeconds != 0) request.automaticHeaders.Add("Cache-Control", "max-age=" + cacheValidityInSeconds);
+                else request.automaticHeaders.Add("Cache-Control", "max-age=" + request.server.DefaultCacheValidityInSeconds);
+            }
+            if (!cache || request.server.DefaultCacheValidityInSeconds == 0) return action(request);
             CacheResponse c = request.server.GetCacheResponse(request);
             if(c == null)
             {
@@ -542,6 +558,7 @@ namespace ComputerUtils.Webserver
         public string remote { get; set; } = "";
         public CookieCollection cookies { get; set; } = null;
         public NameValueCollection queryString { get; set; } = null;
+        public Dictionary<string, string> automaticHeaders = new Dictionary<string, string>();
 
         public ServerRequestDetails serverRequestDetails { get; set; } = new ServerRequestDetails();
 
@@ -615,6 +632,11 @@ namespace ComputerUtils.Webserver
 
         public void SendFile(string file, Dictionary<string, string> replace, string contentType = "", int statusCode = 200, bool closeRequest = true, Dictionary<string, string> headers = null)
         {
+            if (replace == null)
+            {
+                SendFile(file, contentType, statusCode, closeRequest, headers);
+                return;
+            }
             if (!File.Exists(file))
             {
                 Send404();
@@ -647,7 +669,11 @@ namespace ComputerUtils.Webserver
             {
                 foreach (KeyValuePair<string, string> header in server.defaultResponseHeaders) context.Response.Headers[header.Key] = header.Value;
             }
-            if(headers != null)
+            if (automaticHeaders != null)
+            {
+                foreach (KeyValuePair<string, string> header in automaticHeaders) context.Response.Headers[header.Key] = header.Value;
+            }
+            if (headers != null)
             {
                 foreach (KeyValuePair<string, string> header in headers) context.Response.Headers[header.Key] = header.Value;
             }
