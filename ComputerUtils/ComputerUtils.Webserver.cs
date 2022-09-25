@@ -64,7 +64,6 @@ namespace ComputerUtils.Webserver
                 
             }
             listener.TimeoutManager.IdleConnection = new TimeSpan(0, 1, 0);
-            listener.TimeoutManager.MinSendBytesPerSecond = 0;
             serverThread = new Thread(() =>
             {
                 listener.Start();
