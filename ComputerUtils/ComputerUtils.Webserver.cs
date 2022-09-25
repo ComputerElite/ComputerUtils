@@ -10,6 +10,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Runtime.InteropServices;
+using System.Security.Authentication.ExtendedProtection;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -62,7 +63,8 @@ namespace ComputerUtils.Webserver
                 }
                 
             }
-            
+            listener.TimeoutManager.IdleConnection = new TimeSpan(0, 1, 0);
+            listener.TimeoutManager.MinSendBytesPerSecond = 0;
             serverThread = new Thread(() =>
             {
                 listener.Start();
