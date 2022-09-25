@@ -678,7 +678,7 @@ namespace ComputerUtils.Webserver
                 foreach (KeyValuePair<string, string> header in headers) context.Response.Headers[header.Key] = header.Value;
             }
             Logger.Log("    Sending " + data.LongLength + " bytes of data to " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " from " + path);
-            context.Response.OutputStream.WriteAsync(data, 0, data.Length);
+            context.Response.OutputStream.Write(data, 0, data.Length);
             serverRequestDetails.sentData = data;
             serverRequestDetails.sentContentType = contentType;
             serverRequestDetails.sentContentEncoding = contentEncoding;
