@@ -32,6 +32,7 @@ namespace ComputerUtils.Webserver
         };
         public List<CacheResponse> cache = new List<CacheResponse>();
         public int DefaultCacheValidityInSeconds = 3600;
+        public long maxRamUsage = 1073741824; // 1TB
         public int[] ports = new int[0];
         public bool setupHttps = false;
         public string[] otherPrefixes = new string[0];
@@ -172,6 +173,13 @@ namespace ComputerUtils.Webserver
             res.details= request.serverRequestDetails;
             res.validilityTime = DateTime.Now.AddSeconds(cacheValidityInSeconds == 0 ? DefaultCacheValidityInSeconds : cacheValidityInSeconds);
             cache.Add(res);
+
+            // remove cache response if too much ram
+            Process currentProcess = Process.GetCurrentProcess();
+            while (currentProcess.WorkingSet64 >= maxRamUsage && cache.Count > 0)
+            {
+                cache.RemoveAt(0);
+            }
         }
 
         public void RemoveCacheResponse(CacheResponse res)
