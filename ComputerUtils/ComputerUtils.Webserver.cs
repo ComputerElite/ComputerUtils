@@ -1,4 +1,5 @@
 ﻿using ComputerUtils.Logging;
+using ComputerUtils.VarUtils;
 using MimeTypes;
 using System;
 using System.Collections.Generic;
@@ -176,9 +177,13 @@ namespace ComputerUtils.Webserver
 
             // remove cache response if too much ram
             Process currentProcess = Process.GetCurrentProcess();
+            Logger.Log("Ram usage is " + SizeConverter.ByteSizeToString(currentProcess.WorkingSet64) + " and max ram usage allowed is " + SizeConverter.ByteSizeToString(maxRamUsage), LoggingType.Important);
             while (currentProcess.WorkingSet64 >= maxRamUsage && cache.Count > 0)
             {
+                Logger.Log("As ram usage exceeds max ram usage I'm removing the earliest cache entry", LoggingType.Important);
                 cache.RemoveAt(0);
+                Logger.Log("Ram usage is now " + SizeConverter.ByteSizeToString(currentProcess.WorkingSet64) + " and max ram usage allowed is " + SizeConverter.ByteSizeToString(maxRamUsage), LoggingType.Important);
+
             }
         }
 
