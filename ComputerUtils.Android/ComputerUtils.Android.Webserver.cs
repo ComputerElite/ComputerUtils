@@ -99,7 +99,7 @@ namespace ComputerUtils.Android.Webserver
                                 else
                                 {
                                     ServerRequest request = new ServerRequest(context, this);
-                                    Logger.Log(request.ToString());
+                                    //Logger.Log(request.ToString());
                                     if (!accessCheck(request))
                                     {
                                         if (!request.closed) request.Send403();
@@ -668,7 +668,7 @@ namespace ComputerUtils.Android.Webserver
             {
                 foreach (KeyValuePair<string, string> header in headers) context.Response.Headers[header.Key] = header.Value;
             }
-            Logger.Log("    Sending " + data.LongLength + " bytes of data to " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " from " + path);
+            //Logger.Log("    Sending " + data.LongLength + " bytes of data to " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " from " + path);
             context.Response.OutputStream.WriteAsync(data, 0, data.Length);
             serverRequestDetails.sentData = data;
             serverRequestDetails.sentContentType = contentType;

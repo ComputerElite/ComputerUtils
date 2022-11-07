@@ -287,4 +287,25 @@ namespace ComputerUtils.Updating
         public string browser_download_url { get; set; } = "";
         public string content_type { get; set; } = "";
     }
+
+    public class GithubCommit // stripped
+    {
+        public GithubCommitCommit commit { get; set; } = new GithubCommitCommit();
+        public string html_url { get; set; } = "";
+    }
+
+    public class GithubCommitCommit // stripped
+    {
+        public string message { get; set; } = "";
+        public GithubCommitCommiter author { get; set; } = new GithubCommitCommiter();
+        public GithubCommitCommiter committer { get; set; } = new GithubCommitCommiter();
+
+    }
+
+    public class GithubCommitCommiter // stripped
+    {
+        public DateTime date { get; set; } = DateTime.MinValue;
+        public string name { get; set; } = "";
+        public string email { get; set; } = "";
+    }
 }
