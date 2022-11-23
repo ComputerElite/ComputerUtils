@@ -36,6 +36,7 @@ namespace ComputerUtils.Webserver
         public long maxRamUsage = 1073741824; // 1TB
         public int[] ports = new int[0];
         public bool setupHttps = false;
+        public bool logRequests = true;
         public string[] otherPrefixes = new string[0];
         public Thread serverThread = null;
         
@@ -80,7 +81,7 @@ namespace ComputerUtils.Webserver
                             {
                                 if (context.Request.IsWebSocketRequest || context.Request.Headers["Sec-WebSocket-Version"] != null)
                                 {
-                                    Logger.Log("Websocket connected from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()));
+                                    if(logRequests) Logger.Log("Websocket connected from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()));
                                     context.Request.Headers["Upgrade"] = "websocket";
                                     context.Request.Headers["Connection"] = "Upgrade";
                                     string uRL = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
@@ -103,7 +104,7 @@ namespace ComputerUtils.Webserver
                                 else
                                 {
                                     ServerRequest request = new ServerRequest(context, this);
-                                    Logger.Log(request.ToString());
+                                    if (logRequests) Logger.Log(request.ToString());
                                     if (!accessCheck(request))
                                     {
                                         if (!request.closed) request.Send403();
@@ -177,13 +178,9 @@ namespace ComputerUtils.Webserver
 
             // remove cache response if too much ram
             Process currentProcess = Process.GetCurrentProcess();
-            Logger.Log("Ram usage is " + SizeConverter.ByteSizeToString(currentProcess.WorkingSet64) + " and max ram usage allowed is " + SizeConverter.ByteSizeToString(maxRamUsage), LoggingType.Important);
             while (currentProcess.WorkingSet64 >= maxRamUsage && cache.Count > 0)
             {
-                Logger.Log("As ram usage exceeds max ram usage I'm removing the earliest cache entry", LoggingType.Important);
                 cache.RemoveAt(0);
-                Logger.Log("Ram usage is now " + SizeConverter.ByteSizeToString(currentProcess.WorkingSet64) + " and max ram usage allowed is " + SizeConverter.ByteSizeToString(maxRamUsage), LoggingType.Important);
-
             }
         }
 
@@ -282,7 +279,6 @@ namespace ComputerUtils.Webserver
         {
             if (accessCheck == null)
             {
-                Logger.Log("accessCheck is null for " + path + ". cache is " + cache, LoggingType.Important);
                 AddRouteFile(path, filePath, replace, ignoreCase, ignoreEnd, cache, 0, cache, 0);
                 return;
             }
@@ -307,7 +303,6 @@ namespace ComputerUtils.Webserver
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
                 string file = folderPath + ServerRequest.path.Substring(path.Length + 1).Replace('/', Path.DirectorySeparatorChar);
-                //Logger.Log(file);
                 if (File.Exists(file)) ServerRequest.SendFile(file);
                 else ServerRequest.Send404();
                 return true;
@@ -412,13 +407,13 @@ namespace ComputerUtils.Webserver
         {
             if(validilityTime < DateTime.Now)
             {
-                Logger.Log("Requesting data from action. Cache length: " + request.server.cache.Count, LoggingType.Debug);
+                //Logger.Log("Requesting data from action. Cache length: " + request.server.cache.Count, LoggingType.Debug);
                 action(request);
                 request.server.RemoveCacheResponse(this);
                 request.server.AddCacheResponse(request, cacheValidityInSeconds);
             } else
             {
-                Logger.Log("Sending data from cache. Cache length: " + request.server.cache.Count, LoggingType.Debug);
+                //Logger.Log("Sending data from cache. Cache length: " + request.server.cache.Count, LoggingType.Debug);
                 request.SendData(details.sentData, details.sentContentType, details.sentStatusCode, details.sentCloseRequest, details.sentHeaders);
             }
             
@@ -665,7 +660,7 @@ namespace ComputerUtils.Webserver
         {
             context.Response.Redirect(target);
             Close();
-            Logger.Log("    Redirecting " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " to " + target + " from " + path);
+            if (server.logRequests) Logger.Log("    Redirecting " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " to " + target + " from " + path);
         }
 
         public void SendData(byte[] data, string contentType = "text/html", int statusCode = 200, bool closeRequest = true, Dictionary<string, string> headers = null)
@@ -691,7 +686,7 @@ namespace ComputerUtils.Webserver
             {
                 foreach (KeyValuePair<string, string> header in headers) context.Response.Headers[header.Key] = header.Value;
             }
-            Logger.Log("    Sending " + data.LongLength + " bytes of data to " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " from " + path);
+            if (server.logRequests) Logger.Log("    Sending " + data.LongLength + " bytes of data to " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " from " + path);
             context.Response.OutputStream.Write(data, 0, data.Length);
             serverRequestDetails.sentData = data;
             serverRequestDetails.sentContentType = contentType;
@@ -764,14 +759,14 @@ namespace ComputerUtils.Webserver
                     }
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
-                        Logger.Log("Websocket closed by client: " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()));
+                        if (server.logRequests) Logger.Log("Websocket closed by client: " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()));
                         closed = true;
                         socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
                     } else
                     {
                         buffer = buffer.TakeWhile((v, index) => buffer.Skip(index).Any(w => w != 0x00)).ToArray();
                         SocketServerRequest socketRequest = new SocketServerRequest(context, server, this, result, buffer);
-                        Logger.Log("Websocket from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " sent " + (socketRequest.bodyString.Length > 500 ? socketRequest.bodyString.Substring(0, 500) + " [...]" : socketRequest.bodyString));
+                        if (server.logRequests) Logger.Log("Websocket from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " sent " + (socketRequest.bodyString.Length > 500 ? socketRequest.bodyString.Substring(0, 500) + " [...]" : socketRequest.bodyString));
                         route.action(socketRequest);
                     }
                 }
@@ -783,7 +778,7 @@ namespace ComputerUtils.Webserver
         public void CloseRequest()
         {
             closed = true;
-            Logger.Log("Websocket closed by server from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()));
+            if (server.logRequests) Logger.Log("Websocket closed by server from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()));
             socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
         }
 
@@ -828,7 +823,7 @@ namespace ComputerUtils.Webserver
                 handler.Dispose();
                 return;
             }
-            Logger.Log("    Sending " + data.LongLength + " bytes of data to " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " via websocket at " + path);
+            if (server.logRequests) Logger.Log("    Sending " + data.LongLength + " bytes of data to " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " via websocket at " + path);
             handler.socket.SendAsync(new ArraySegment<byte>(data, 0, data.Length), WebSocketMessageType.Text, receiveResult.EndOfMessage, CancellationToken.None);
             if (closeRequest) Close();
         }
