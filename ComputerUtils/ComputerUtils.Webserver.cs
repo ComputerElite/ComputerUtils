@@ -39,6 +39,8 @@ namespace ComputerUtils.Webserver
         public bool logRequests = true;
         public string[] otherPrefixes = new string[0];
         public Thread serverThread = null;
+        public Thread[] threadPool = null;
+        public int maxThreads = 6;
         
         public void StartServer(int port, bool setupHttps = false, string[] otherPrefixes = null)
         {
@@ -67,64 +69,84 @@ namespace ComputerUtils.Webserver
                 
             }
             listener.TimeoutManager.IdleConnection = new TimeSpan(0, 1, 0);
-            serverThread = new Thread(() =>
+            threadPool = new Thread[maxThreads];
+			for (int i = 0; i < maxThreads; i++)
+            {
+                threadPool[i] = null;
+            }
+			serverThread = new Thread(() =>
             {
                 listener.Start();
+                bool foundThread = false;
                 while (true)
                 {
                     try
                     {
                         HttpListenerContext context = listener.GetContextAsync().Result;
-                        Thread t = new Thread(() =>
+                        foundThread = false;
+                        while(!foundThread)
                         {
-                            try
-                            {
-                                if (context.Request.IsWebSocketRequest || context.Request.Headers["Sec-WebSocket-Version"] != null)
-                                {
-                                    if(logRequests) Logger.Log("Websocket connected from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()));
-                                    context.Request.Headers["Upgrade"] = "websocket";
-                                    context.Request.Headers["Connection"] = "Upgrade";
-                                    string uRL = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
-                                    bool found = false;
-                                    for (int i = 0; i < wsRoutes.Count; i++)
-                                    {
-                                        if (wsRoutes[i].UseRoute(uRL))
-                                        {
-                                            SocketHandler handler = new SocketHandler(context, this, wsRoutes[i]);
-                                            found = true;
-                                            break;
-                                        }
-                                    }
-                                    if(!found)
-                                    {
-                                        context.Response.StatusCode = 404;
-                                        context.Response.Close();
-                                    }
-                                }
-                                else
-                                {
-                                    ServerRequest request = new ServerRequest(context, this);
-                                    if (logRequests) Logger.Log(request.ToString());
-                                    if (!accessCheck(request))
-                                    {
-                                        if (!request.closed) request.Send403();
-                                        return;
-                                    }
-                                    for (int i = 0; i < routes.Count; i++)
-                                    {
-                                        if (routes[i].UseRoute(request)) break;
-                                    }
-                                    if (!request.closed) request.Send404();
-                                    request.Dispose();
-                                }
-                            }
-                            catch (Exception e)
-                            {
-                                context.Response.Close();
-                                Logger.Log("An error occured while handling a request:\n" + e.ToString(), LoggingType.Error);
-                            }
-                        });
-                        t.Start();
+							for (int i = 0; i < threadPool.Length; i++)
+							{
+								if (threadPool[i] == null || threadPool[i].ThreadState == System.Threading.ThreadState.Stopped)
+								{
+                                    Logger.Log("Handling request via Thread #" + i, LoggingType.Debug);
+									threadPool[i] = new Thread(() =>
+									{
+										try
+										{
+											if (context.Request.IsWebSocketRequest || context.Request.Headers["Sec-WebSocket-Version"] != null)
+											{
+												if (logRequests) Logger.Log("Websocket connected from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()));
+												context.Request.Headers["Upgrade"] = "websocket";
+												context.Request.Headers["Connection"] = "Upgrade";
+												string uRL = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
+												bool found = false;
+												for (int i = 0; i < wsRoutes.Count; i++)
+												{
+													if (wsRoutes[i].UseRoute(uRL))
+													{
+														SocketHandler handler = new SocketHandler(context, this, wsRoutes[i]);
+														found = true;
+														break;
+													}
+												}
+												if (!found)
+												{
+													context.Response.StatusCode = 404;
+													context.Response.Close();
+												}
+											}
+											else
+											{
+												ServerRequest request = new ServerRequest(context, this);
+												if (logRequests) Logger.Log(request.ToString());
+												if (!accessCheck(request))
+												{
+													if (!request.closed) request.Send403();
+													return;
+												}
+												for (int i = 0; i < routes.Count; i++)
+												{
+													if (routes[i].UseRoute(request)) break;
+												}
+												if (!request.closed) request.Send404();
+												request.Dispose();
+											}
+										}
+										catch (Exception e)
+										{
+											context.Response.Close();
+											Logger.Log("An error occured while handling a request:\n" + e.ToString(), LoggingType.Error);
+										}
+									});
+									threadPool[i].Start();
+                                    foundThread = true;
+									break;
+								}
+							}
+							Thread.Sleep(20);
+						}
                     }
                     catch (Exception e)
                     {
