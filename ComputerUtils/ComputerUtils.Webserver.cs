@@ -90,7 +90,7 @@ namespace ComputerUtils.Webserver
 							{
 								if (threadPool[i] == null || threadPool[i].ThreadState == System.Threading.ThreadState.Stopped)
 								{
-                                    Logger.Log("Handling request via Thread #" + i, LoggingType.Debug);
+                                    //Logger.Log("Handling request via Thread #" + i, LoggingType.Debug);
 									threadPool[i] = new Thread(() =>
 									{
 										try

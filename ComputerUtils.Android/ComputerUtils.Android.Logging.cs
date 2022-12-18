@@ -8,7 +8,8 @@ namespace ComputerUtils.Android.Logging
     public class Logger
     {
         public static string logFile { get; set; } = "";
-        public static bool removeUsernamesFromLog { get; set; } = true;
+		public static string log { get; set; } = "";
+		public static bool removeUsernamesFromLog { get; set; } = true;
         public static bool displayLogInConsole { get; set; } = false;
         public static bool longLogInConsole { get; set; } = true;
 
@@ -40,9 +41,12 @@ namespace ComputerUtils.Android.Logging
                 }
                 Console.WriteLine(longLogInConsole ? text : text.Replace(linePrefix, ""));
                 Console.ForegroundColor = ConsoleColor.White;
-            }
-            if (logFile == "") return;
-            File.AppendAllText(logFile, "\n" + text);
+			}
+			log += "\n" + text;
+			if (log.Length > 50000) log = log.Substring(log.Length - 50000);
+			if (logFile == "") return;
+
+			File.AppendAllText(logFile, "\n" + text);
         }
         public static void LogRaw(string text)
         {

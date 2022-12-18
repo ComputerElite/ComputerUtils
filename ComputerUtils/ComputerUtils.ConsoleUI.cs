@@ -498,4 +498,113 @@ namespace ComputerUtils.ConsoleUi
             return success;
         }
     }
+
+	public class UploadProgressUI
+	{
+		public bool StartUpload(string uploadLink, byte[] file, bool logLink = true, bool showETA = true, Dictionary<string, string> headers = null, bool clearAfterwads = false)
+		{
+			return UploadThreadHandler(uploadLink, file, logLink, showETA, headers, clearAfterwads).Result;
+		}
+
+		public async Task<bool> UploadThreadHandler(string uploadLink, byte[] file, bool logLink = true, bool showETA = true, Dictionary<string, string> headers = null, bool clearAfterwads = false)
+		{
+			bool completed = false;
+			bool success = false;
+			Thread t = new Thread(() =>
+			{
+				success = UploadThread(uploadLink, file, logLink, showETA, headers, clearAfterwads).Result;
+				completed = true;
+			});
+			t.Start();
+			while (!completed)
+			{
+				await TimeDelay.DelayWithoutThreadBlock(100);
+			}
+			if (success)
+			{
+				Console.ForegroundColor = ConsoleColor.Green;
+				Console.WriteLine("Success");
+			}
+			else
+			{
+				Console.ForegroundColor = ConsoleColor.Red;
+				Console.WriteLine("Error while uploading");
+			}
+			Console.ForegroundColor = ConsoleColor.White;
+			return success;
+		}
+
+		public async Task<bool> UploadThread(string uploadLink, byte[] file, bool logLink = true, bool showETA = true, Dictionary<string, string> headers = null, bool clearAfterwads = false)
+		{
+			bool completed = false;
+			bool success = false;
+			int currentLine = Console.CursorTop;
+			Logger.Log("Uploading " + "" + " from " + (logLink ? uploadLink : "hidden") + " to " + file);
+			Console.ForegroundColor = ConsoleColor.White;
+			Console.Write("Uploading ");
+			Console.ForegroundColor = ConsoleColor.Blue;
+			Console.WriteLine(Logger.CensorString(uploadLink));
+			Console.ForegroundColor = ConsoleColor.White;
+			WebClient c = new WebClient();
+
+			bool locked = false;
+			long lastBytes = 0;
+			ProgressBarUI progressBar = new ProgressBarUI();
+			progressBar.eTARange = 20;
+			DateTime lastUpdate = DateTime.MinValue;
+			progressBar.Start();
+			List<long> lastBytesPerSec = new List<long>();
+			long BytesToRecieve = 0;
+			progressBar.UpdateProgress(0, 1, "0", "0", "Upload started");
+			c.UploadProgressChanged += (o, e) =>
+			{
+				if (locked) return;
+
+				locked = true;
+				double secondsPassed = (DateTime.Now - lastUpdate).TotalSeconds;
+				if (secondsPassed >= progressBar.UpdateRate)
+				{
+					BytesToRecieve = e.TotalBytesToSend;
+					string current = SizeConverter.ByteSizeToString(e.BytesSent);
+					string total = SizeConverter.ByteSizeToString(BytesToRecieve);
+					long bytesPerSec = (long)Math.Round((e.BytesSent - lastBytes) / secondsPassed);
+					lastBytesPerSec.Add(bytesPerSec);
+					if (lastBytesPerSec.Count > 5) lastBytesPerSec.RemoveAt(0);
+					lastBytes = e.BytesReceived;
+					long avg = 0;
+					foreach (long l in lastBytesPerSec) avg += l;
+					avg = avg / lastBytesPerSec.Count;
+					progressBar.UpdateProgress(e.BytesSent, BytesToRecieve, current, total, SizeConverter.ByteSizeToString(bytesPerSec, 0) + "/s", true);
+					lastUpdate = DateTime.Now;
+				}
+				locked = false;
+			};
+			c.UploadFileCompleted += (o, e) =>
+			{
+				if (e.Error == null) success = true;
+				Logger.Log("Did upload succeed: " + success + (success ? "" : ":\n" + e.Error.ToString()));
+				progressBar.UpdateProgress(BytesToRecieve, BytesToRecieve, SizeConverter.ByteSizeToString(BytesToRecieve), SizeConverter.ByteSizeToString(BytesToRecieve), success ? "Finished" : "An error occured");
+				completed = true;
+				Console.WriteLine();
+				if (clearAfterwads)
+				{
+					progressBar.currentLine = currentLine;
+					progressBar.ClearCurrentLine();
+				}
+			};
+			if (headers != null)
+			{
+				foreach (KeyValuePair<string, string> h in headers)
+				{
+					c.Headers[h.Key] = h.Value;
+				}
+			}
+			c.UploadDataAsync(new Uri(uploadLink), "POST", file);
+			while (!completed)
+			{
+				await TimeDelay.DelayWithoutThreadBlock(100);
+			}
+			return success;
+		}
+	}
 }
