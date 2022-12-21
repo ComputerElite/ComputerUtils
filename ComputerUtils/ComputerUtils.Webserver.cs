@@ -40,7 +40,7 @@ namespace ComputerUtils.Webserver
         public string[] otherPrefixes = new string[0];
         public Thread serverThread = null;
         public Thread[] threadPool = null;
-        public int maxThreads = 6;
+        public int maxThreads = 12;
         
         public void StartServer(int port, bool setupHttps = false, string[] otherPrefixes = null)
         {
