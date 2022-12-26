@@ -4,6 +4,7 @@ using ComputerUtils.Timing;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,7 +12,7 @@ namespace ComputerUtils.ADB
 {
     public class ADBInteractor
     {
-        public List<string> ADBPaths { get; set; } = new List<string>() { "adb.exe", "User\\Android\\platform-tools_r29.0.4-windows\\platform-tools\\adb.exe", "User\\AppData\\Roaming\\SideQuest\\platform-tools\\adb.exe", "C:\\Program Files\\SideQuest\\resources\\app.asar.unpacked\\build\\platform-tools\\adb.exe" };
+        public List<string> ADBPaths { get; set; } = new List<string>() { "adb\\adb.exe", "adb.exe", "User\\Android\\platform-tools_r29.0.4-windows\\platform-tools\\adb.exe", "User\\AppData\\Roaming\\SideQuest\\platform-tools\\adb.exe", "C:\\Program Files\\SideQuest\\resources\\app.asar.unpacked\\build\\platform-tools\\adb.exe" };
 
         public string ListFilesAndDirectories(string directory)
         {
@@ -157,8 +158,40 @@ namespace ComputerUtils.ADB
             return adbThreadHandler(Argument).Result;
         }
 
+        public bool AskDownloadADB()
+        {
+            string choice = ConsoleUiController.QuestionString("ADB is not downloaded on your pc. Do you want to download it now? (Y/n): ").Trim().ToLower();
+            if (choice == "n") return false;
+            DownloadProgressUI d = new DownloadProgressUI();
+            d.StartDownload("https://dl.google.com/android/repository/platform-tools_r33.0.3-windows.zip", "adb.zip");
+            Console.WriteLine("Download completed, extracting package");
+            Logger.Log("Extracting adb zip file to adb");
+            ZipFile.ExtractToDirectory("adb.zip", "adb");
+            Directory.Move("adb\\platform-tools", "adb2");
+            Directory.Delete("adb", true);
+            Directory.Move("adb2", "adb");
+            Logger.Log("Deleting adb.zip");
+            File.Delete("adb.zip");
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("ADB downloaded. You can now try doing what you wanted again.");
+            Console.ForegroundColor = ConsoleColor.White;
+			return true;
+        }
+
+        public bool IsADBDownloaded()
+        {
+
+			string User = System.Environment.GetEnvironmentVariable("USERPROFILE");
+            foreach(string s in ADBPaths)
+            {
+                if (File.Exists(s.Replace("User", User))) return true;
+            }
+            return false;
+		}
+
         public async Task<bool> adbThreadHandler(String Argument)
         {
+            if(!IsADBDownloaded()) AskDownloadADB();
             bool returnValue = false;
             String txtAppend = "N/A";
             Thread t = new Thread(() =>
@@ -173,7 +206,13 @@ namespace ComputerUtils.ADB
                         txtAppend = "\n\n\nAn error occured (Code: ADB110). Check if your Quest is connected, Developer Mode enabled and USB Debugging enabled.";
                         break;
                     case "adb100":
-                        txtAppend = "\n\nAn error occured (Code: ADB100). Check if you have adb installed.";
+                        if (AskDownloadADB())
+                        {
+							txtAppend = "";
+						} else
+                        {
+							txtAppend = "\n\nAn error occured (Code: ADB100). Check if you have adb installed.";
+						}
                         break;
                     case "false":
                         txtAppend = "\n\nAn unhandled ADB error has occured. More info in log";
@@ -248,8 +287,9 @@ namespace ComputerUtils.ADB
         }
 
         public async Task<string> adbSThreadHandler(String Argument)
-        {
-            string returnValue = "Error";
+		{
+			if (!IsADBDownloaded()) AskDownloadADB();
+			string returnValue = "Error";
             String txtAppend = "N/A";
             Thread t = new Thread(() =>
             {
@@ -260,8 +300,15 @@ namespace ComputerUtils.ADB
                         txtAppend = "\n\nAn error Occured (Code: ADB110). Check if your Quest is connected, Developer Mode enabled and USB Debugging enabled.";
                         break;
                     case "adb100":
-                        txtAppend = "\n\nAn error Occured (Code: ADB100). Check if you have adb installed.";
-                        break;
+						if (AskDownloadADB())
+						{
+							txtAppend = "";
+						}
+						else
+						{
+							txtAppend = "\n\nAn error occured (Code: ADB100). Check if you have adb installed.";
+						}
+						break;
                     case "false":
                         txtAppend = "\n\nAn unhandled ADB error has occured. More info in log";
                         break;
