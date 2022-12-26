@@ -206,13 +206,7 @@ namespace ComputerUtils.ADB
                         txtAppend = "\n\n\nAn error occured (Code: ADB110). Check if your Quest is connected, Developer Mode enabled and USB Debugging enabled.";
                         break;
                     case "adb100":
-                        if (AskDownloadADB())
-                        {
-							txtAppend = "";
-						} else
-                        {
-							txtAppend = "\n\nAn error occured (Code: ADB100). Check if you have adb installed.";
-						}
+                        txtAppend = "\n\nAn error occured (Code: ADB100). Check if you have adb installed.";
                         break;
                     case "false":
                         txtAppend = "\n\nAn unhandled ADB error has occured. More info in log";
@@ -300,14 +294,7 @@ namespace ComputerUtils.ADB
                         txtAppend = "\n\nAn error Occured (Code: ADB110). Check if your Quest is connected, Developer Mode enabled and USB Debugging enabled.";
                         break;
                     case "adb100":
-						if (AskDownloadADB())
-						{
-							txtAppend = "";
-						}
-						else
-						{
-							txtAppend = "\n\nAn error occured (Code: ADB100). Check if you have adb installed.";
-						}
+						txtAppend = "\n\nAn error occured (Code: ADB100). Check if you have adb installed.";
 						break;
                     case "false":
                         txtAppend = "\n\nAn unhandled ADB error has occured. More info in log";
