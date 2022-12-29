@@ -63,6 +63,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ComputerUtils.Android.AndroidTools.cs" />
+    <Compile Include="ComputerUtils.Android.Updating.cs" />
     <None Include="Resources\AboutResources.txt" />
   </ItemGroup>
   <ItemGroup>
