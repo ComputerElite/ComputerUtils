@@ -67,7 +67,17 @@ namespace ComputerUtils.Android.AndroidTools
             return inApps;
         }
 
-        public static string FindAPKLocation(string package)
+		public static void LaunchApp(string packageName)
+		{
+            Intent intent = Application.Context.PackageManager.GetLaunchIntentForPackage(packageName);
+            if(intent != null)
+            {
+				intent.SetFlags(ActivityFlags.NewTask);
+				AndroidCore.context.StartActivity(intent);
+			}
+		}
+
+		public static string FindAPKLocation(string package)
         {
             try
             {

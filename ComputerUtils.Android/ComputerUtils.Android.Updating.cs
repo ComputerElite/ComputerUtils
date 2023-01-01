@@ -16,6 +16,7 @@ namespace ComputerUtils.Updating
 	public class UpdateAvailableResponse
 	{
 		public string msg { get; set; }
+		public string changelog { get; set; }
 		public bool isUpdateAvailable { get; set; }
 	}
 
@@ -39,25 +40,26 @@ namespace ComputerUtils.Updating
 			Console.ForegroundColor = ConsoleColor.White;
 			Console.WriteLine("Checking for updates");
 			GithubRelease latest = GetLatestVersion();
+			
 			if (latest.comparedToCurrentVersion == 1)
 			{
 				Logger.Log("Update available: " + version + " -> " + latest.tag_name);
-				return new UpdateAvailableResponse { msg = "New update availabel! Current version: " + version + ", latest version: " + latest.tag_name, isUpdateAvailable = true};
+				return new UpdateAvailableResponse { changelog = latest.body, msg = "New update availabel! Current version: " + version + ", latest version: " + latest.tag_name, isUpdateAvailable = true};
 			}
 			else if (latest.comparedToCurrentVersion == -2)
 			{
 				Logger.Log("Error while checking for updates", LoggingType.Error);
-				return new UpdateAvailableResponse { isUpdateAvailable = false, msg = "An Error occured while checking for updates" };
+				return new UpdateAvailableResponse { changelog = latest.body, isUpdateAvailable = false, msg = "An Error occured while checking for updates" };
 			}
 			else if (latest.comparedToCurrentVersion == -1)
 			{
 				Logger.Log("User on preview version: " + version + " Latest stable: " + latest.tag_name);
-				return new UpdateAvailableResponse { isUpdateAvailable = false, msg = "Have fun on a preview version (" + version + "). You can't downgrade to the latest stable release (" + latest.tag_name + ") as downgrades are not supported on android. If you want to downgrade anyway use SideQuest or adb." };
+				return new UpdateAvailableResponse { changelog = latest.body, isUpdateAvailable = false, msg = "Have fun on a preview version (" + version + "). You can't downgrade to the latest stable release (" + latest.tag_name + ") as downgrades are not supported on android. If you want to downgrade anyway use SideQuest or adb." };
 			}
 			else
 			{
 				Logger.Log("User on newest version");
-				return new UpdateAvailableResponse { isUpdateAvailable = false, msg = "You're on the newest version (" + version + ")" };
+				return new UpdateAvailableResponse { changelog = latest.body, isUpdateAvailable = false, msg = "You're on the newest version (" + version + ")" };
 			}
 		}
 
