@@ -4,6 +4,7 @@ using ComputerUtils.Timing;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,7 +14,8 @@ namespace ComputerUtils.ADB
     public class ADBInteractor
     {
         public List<string> ADBPaths { get; set; } = new List<string>() { "adb\\adb.exe", "adb.exe", "User\\Android\\platform-tools_r29.0.4-windows\\platform-tools\\adb.exe", "User\\AppData\\Roaming\\SideQuest\\platform-tools\\adb.exe", "C:\\Program Files\\SideQuest\\resources\\app.asar.unpacked\\build\\platform-tools\\adb.exe" };
-
+        public AndroidDevice selectedDevice = null;
+        
         public string ListFilesAndDirectories(string directory)
         {
             Logger.Log("Listing files of " + directory, LoggingType.ADB);
@@ -84,8 +86,64 @@ namespace ComputerUtils.ADB
             }
             return users;
         }
+        
+        public List<AndroidDevice> GetDevices()
+        {
+            List<AndroidDevice> devices = new List<AndroidDevice>();
+            string[] d = adbS("devices -l", false).Split("\n");
+            foreach (string l in d)
+            {
+                if (l.StartsWith("List of")) continue;
+                string[] options = l.Split(' ');
+                if (options[0].Trim() == "") continue;
+                AndroidDevice device = new AndroidDevice();
+                device.id = options[0];
+                foreach(string o in options)
+                {
+                    string[] p = o.Split(":");
+                    if (p[0] == "model")
+                    {
+                        device.name = p[1];
+                        break;
+                    }
+                }
+                devices.Add(device);
+            }
+            return devices;
+        }
 
-        public bool InstallAppSelectUser(string apk)
+		public void SelectDevice()
+		{
+			List<string> selection = new List<string>();
+			Console.WriteLine("Select the device you want to use");
+			List<AndroidDevice> devices = GetDevices();
+			if (devices.Count <= 0)
+			{
+				Console.ForegroundColor = ConsoleColor.Red;
+				Console.WriteLine("No devices found. Enable developer mode, allow USB debugging and plug your quest into your pc");
+                return;
+			}
+			if (devices.Count == 1)
+			{
+				Console.WriteLine("Only one device connected to PC, selecting "+ devices[0].name);
+                selectedDevice = devices[0];
+				if (selectedDevice != null) Logger.notAllowedStrings.Add(selectedDevice.id); // remove serial number from log
+				return;
+			}
+			foreach (AndroidDevice d in devices) selection.Add(d.name);
+			string choice = ConsoleUiController.ShowMenu(selection.ToArray(), "Device");
+			if (Convert.ToInt32(choice) - 1 >= selection.Count)
+			{
+				selectedDevice = devices[0];
+			}
+			else
+			{
+                selectedDevice = devices[Convert.ToInt32(choice) - 1];
+			}
+            if(selectedDevice != null) Logger.notAllowedStrings.Add(selectedDevice.id); // remove serial number from log
+		}
+
+		public bool InstallAppSelectUser(string apk)
         {
             return InstallAPK(apk, SelectUsers());
         }
@@ -141,7 +199,7 @@ namespace ComputerUtils.ADB
         {
             Logger.Log("Getting all Users", LoggingType.ADB);
             List<AndroidUser> users = new List<AndroidUser>();
-            foreach (string s in adbS("shell pm list users").Split('\n'))
+            foreach (string s in adbS("shell pm list users", false).Split('\n'))
             {
                 if (s.Trim().StartsWith("UserInfo{"))
                 {
@@ -194,9 +252,10 @@ namespace ComputerUtils.ADB
             if(!IsADBDownloaded()) AskDownloadADB();
             bool returnValue = false;
             String txtAppend = "N/A";
+            string device = selectedDevice == null ? "" : "-s \"" + selectedDevice.id + "\" ";
             Thread t = new Thread(() =>
             {
-                switch (adbThread(Argument))
+                switch (adbThread(device + Argument))
                 {
                     case "true":
                         returnValue = true;
@@ -275,19 +334,20 @@ namespace ComputerUtils.ADB
             return "adb100";
         }
 
-        public string adbS(String Argument)
+        public string adbS(String Argument, bool log = true)
         {
-            return adbSThreadHandler(Argument).Result;
+            return adbSThreadHandler(Argument, log).Result;
         }
 
-        public async Task<string> adbSThreadHandler(String Argument)
+        public async Task<string> adbSThreadHandler(String Argument, bool log)
 		{
 			if (!IsADBDownloaded()) AskDownloadADB();
 			string returnValue = "Error";
             String txtAppend = "N/A";
-            Thread t = new Thread(() =>
+			string device = selectedDevice == null ? "" : "-s \"" + selectedDevice.id + "\" ";
+			Thread t = new Thread(() =>
             {
-                String MethodReturnValue = adbSThread(Argument);
+                String MethodReturnValue = adbSThread(device + Argument, log);
                 switch (MethodReturnValue)
                 {
                     case "adb110":
@@ -318,7 +378,7 @@ namespace ComputerUtils.ADB
             return returnValue;
         }
 
-        public string adbSThread(String Argument)
+        public string adbSThread(String Argument, bool log)
         {
             String User = System.Environment.GetEnvironmentVariable("USERPROFILE");
 
@@ -342,7 +402,7 @@ namespace ComputerUtils.ADB
                         String IPS = exeProcess.StandardOutput.ReadToEnd();
                         String Error = exeProcess.StandardError.ReadToEnd();
                         exeProcess.WaitForExit();
-                        Logger.Log("Output: " + IPS, LoggingType.ADBIntern);
+                        if(log) Logger.Log("Output: " + IPS, LoggingType.ADBIntern);
                         Logger.Log("Error Output: " + Error, LoggingType.ADBIntern);
                         Logger.Log("Exit code: " + exeProcess.ExitCode, LoggingType.ADBIntern);
                         if (IPS.Contains("no devices/emulators found") && exeProcess.ExitCode != 0)
@@ -383,4 +443,23 @@ namespace ComputerUtils.ADB
             return id + ": " + name;
         }
     }
+
+	public class AndroidDevice
+	{
+		public string id { get; set; } = "";
+		public string name { get; set; } = "";
+
+		public AndroidDevice(string id, string name)
+		{
+			this.id = id;
+			this.name = name;
+		}
+
+		public AndroidDevice() { }
+
+		public override string ToString()
+		{
+			return id + ": " + name;
+		}
+	}
 }
