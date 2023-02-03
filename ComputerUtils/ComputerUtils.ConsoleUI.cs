@@ -255,10 +255,14 @@ namespace ComputerUtils.ConsoleUi
         /// <summary>
         /// Clears all line from currentLine to the current cursor position.
         /// </summary>
-        public void ClearCurrentLine()
+        public void ClearCurrentLine(int overrideAmount = -1)
         {
             int amount = Console.CursorTop - currentLine + 1;
-            for (int i = 0; i < amount; i++)
+			if (overrideAmount != -1)
+			{
+				amount = overrideAmount;
+			}
+			for (int i = 0; i < amount; i++)
             {
                 Console.SetCursorPosition(0, currentLine + i);
                 Console.Write(new string(' ', Console.WindowWidth));
@@ -375,9 +379,10 @@ namespace ComputerUtils.ConsoleUi
             lastUpdate = DateTime.Now;
             this.done = done;
             this.total = total;
-            ClearCurrentLine();
+            ClearCurrentLine(3);
             double percentage = (double)done / (double)total;
-            Console.SetCursorPosition(2, currentLine);
+            Console.SetCursorPosition(0, currentLine);
+            Console.Write("  ");
             for (int i = 1; i <= ProgressbarLength; i++)
             {
                 double localPercentage = (double)i / ProgressbarLength;
@@ -425,14 +430,19 @@ namespace ComputerUtils.ConsoleUi
             return success;
         }
 
-        public async Task<bool> DownloadThread(string downloadLink, string destination, bool logLink = true, bool showETA = true, Dictionary<string, string> headers = null, bool clearAfterwads = false)
+		public int currentLineOverride = -1;
+
+		public async Task<bool> DownloadThread(string downloadLink, string destination, bool logLink = true, bool showETA = true, Dictionary<string, string> headers = null, bool clearAfterwads = false)
         {
             bool completed = false;
             bool success = false;
             int currentLine = Console.CursorTop;
+            if (currentLineOverride >= 0) currentLine = currentLineOverride;
             Logger.Log("Downloading " + Path.GetFileName(destination) + " from " + (logLink ? downloadLink : "hidden") + " to " + destination);
             Console.ForegroundColor = ConsoleColor.White;
-            Console.Write("Downloading ");
+
+			Console.CursorTop = currentLine;
+			Console.Write("Downloading ");
             Console.ForegroundColor = ConsoleColor.Blue;
             Console.WriteLine(Logger.CensorString(downloadLink));
             Console.ForegroundColor = ConsoleColor.White;
@@ -443,7 +453,8 @@ namespace ComputerUtils.ConsoleUi
             ProgressBarUI progressBar = new ProgressBarUI();
             progressBar.eTARange = 20;
             DateTime lastUpdate = DateTime.MinValue;
-            progressBar.Start();
+			Console.CursorTop = currentLine + 1;
+			progressBar.Start();
             List<long> lastBytesPerSec = new List<long>();
             long BytesToRecieve = 0;
             progressBar.UpdateProgress(0, 1, "0", "0", "Download started");

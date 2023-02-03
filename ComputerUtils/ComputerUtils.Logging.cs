@@ -27,7 +27,9 @@ namespace ComputerUtils.Logging {
             return input;
         }
 
-        public static void Log(string text, LoggingType loggingType = LoggingType.Info)
+		public static bool savingLog = false;
+
+		public static void Log(string text, LoggingType loggingType = LoggingType.Info)
         {
             //Remove username
             if (removeUsernamesFromLog) text = RegexTemplates.RemoveUserName(text);
@@ -75,8 +77,14 @@ namespace ComputerUtils.Logging {
                 }
             }
             if (logFile == "") return;
+            while(savingLog)
+            {
+                Thread.Sleep(1);
+            }
+            savingLog = true;
             File.AppendAllText(logFile, "\n" + text);
-        }
+			savingLog = false;
+		}
         public static void LogRaw(string text)
         {
             if (logFile == "") return;
