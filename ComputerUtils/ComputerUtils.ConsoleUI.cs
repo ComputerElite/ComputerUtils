@@ -453,13 +453,6 @@ namespace ComputerUtils.ConsoleUi
             ProgressBarUI progressBar = new ProgressBarUI();
             progressBar.eTARange = 20;
             DateTime lastUpdate = DateTime.MinValue;
-            try
-			{
-				Console.CursorTop = currentLine + 1;
-			} catch(Exception e)
-            {
-                Logger.Log("oeagoegoiegjoseighosehgoesi FUCK UI", LoggingType.Warning);
-            }
 			progressBar.Start();
             List<long> lastBytesPerSec = new List<long>();
             long BytesToRecieve = 0;
