@@ -379,7 +379,7 @@ namespace ComputerUtils.ConsoleUi
             lastUpdate = DateTime.Now;
             this.done = done;
             this.total = total;
-            ClearCurrentLine(3);
+            ClearCurrentLine();
             double percentage = (double)done / (double)total;
             Console.SetCursorPosition(0, currentLine);
             Console.Write("  ");
