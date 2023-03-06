@@ -168,7 +168,7 @@ namespace ComputerUtils.Webserver
                     i--;
                     continue;
                 }
-                if (cache[i].method == request.method && cache[i].path == request.path && cache[i].uA == request.context.Request.UserAgent)
+                if (cache[i].origin == request.origin && cache[i].method == request.method && cache[i].path == request.path && cache[i].uA == request.context.Request.UserAgent)
                 {
                     if (request.queryString.Count != cache[i].queryStrings.Count) continue;
                     bool match = true;
@@ -282,12 +282,12 @@ namespace ComputerUtils.Webserver
             }), false, ignoreCase, ignoreEnd, cache, 0, true);
         }
 
-        public void AddRouteFile(string path, string filePath)
+        public void AddRouteFile(string path, string filePath, Dictionary<string, string> dictionary)
         {
-            AddRouteFile(path, filePath, true, true, false);
+            AddRouteFile(path, filePath, dictionary, true, true, false, null);
         }
 
-        public void AddRouteFile(string path, string filePath, Dictionary<string, string> replace, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false, int cacheValidityInSeconds = 0, bool clientCache = false, int clientCacheValidityInSeconds = 0)
+        public void AddRouteFile(string path, string filePath, Dictionary<string, string> replace, bool ignoreCase, bool ignoreEnd = true, bool cache = false, int cacheValidityInSeconds = 0, bool clientCache = false, int clientCacheValidityInSeconds = 0)
         {
             string contentType = GetContentTpe(filePath);
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
@@ -420,6 +420,7 @@ namespace ComputerUtils.Webserver
     {
         public string path = "";
         public string method = "GET";
+        public string origin = "";
         public NameValueCollection queryStrings = new NameValueCollection();
         public ServerRequestDetails details = new ServerRequestDetails();
         public DateTime validilityTime = DateTime.MinValue;
@@ -568,6 +569,7 @@ namespace ComputerUtils.Webserver
     {
         public byte[] sentData { get; set; } = new byte[0];
         public string sentContentType = "";
+        public string origin = "";
         public Encoding sentContentEncoding = Encoding.UTF8;
         public int sentStatusCode = 200;
         public bool sentCloseRequest = true;
@@ -579,6 +581,7 @@ namespace ComputerUtils.Webserver
         public HttpListenerContext context { get; set; } = null;
         public string path { get; set; } = "/";
         public string pathDiff { get; set; } = "";
+        public string origin { get; set; } = "";
         public string method { get; set; } = "GET";
         public HttpServer server { get; set; } = null;
         public bool closed { get; set; } = false;
@@ -600,6 +603,7 @@ namespace ComputerUtils.Webserver
             this.cookies = context.Request.Cookies;
             this.path = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
             this.method = context.Request.HttpMethod;
+            this.origin = context.Request.Headers.Get("origin");
             this.server = server;
             this.queryString = context.Request.QueryString;
             if(context.Request.HasEntityBody && context.Request.InputStream != Stream.Null)
@@ -716,6 +720,7 @@ namespace ComputerUtils.Webserver
             serverRequestDetails.sentStatusCode = statusCode;
             serverRequestDetails.sentCloseRequest = closeRequest;
             serverRequestDetails.sentHeaders = headers;
+            serverRequestDetails.origin = origin;
             if (closeRequest) Close();
             closed = closeRequest;
         }
