@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace ComputerUtils.Android.Logging
 {
@@ -12,6 +13,7 @@ namespace ComputerUtils.Android.Logging
 		public static bool removeUsernamesFromLog { get; set; } = true;
         public static bool displayLogInConsole { get; set; } = false;
         public static bool longLogInConsole { get; set; } = true;
+        public static ReaderWriterLock locker = new ReaderWriterLock();
 
         public static void Log(string text, LoggingType loggingType = LoggingType.Info)
         {
@@ -45,13 +47,21 @@ namespace ComputerUtils.Android.Logging
 			log += "\n" + text;
 			if (log.Length > 50000) log = log.Substring(log.Length - 50000);
 			if (logFile == "") return;
-
-			File.AppendAllText(logFile, "\n" + text);
+            LogRaw(text + "\n");
         }
         public static void LogRaw(string text)
         {
             if (logFile == "") return;
-            File.AppendAllText(logFile, text);
+            try
+            {
+                // Aquire a writer lock to make sure no other thread is writing to the file
+                locker.AcquireWriterLock(10000); //You might wanna change timeout value 
+                File.AppendAllText(logFile, text);
+            }
+            finally
+            {
+                locker.ReleaseWriterLock();
+            }
         }
 
         public static string GetLinePrefix(LoggingType loggingType)
