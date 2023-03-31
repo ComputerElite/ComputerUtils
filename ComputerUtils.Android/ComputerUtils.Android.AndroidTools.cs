@@ -56,12 +56,18 @@ namespace ComputerUtils.Android.AndroidTools
 
     public class AndroidService
     {
-        public static List<App> GetInstalledApps()
+        public static List<App> GetInstalledApps(bool includeSystemApps = false)
         {
             List<App> inApps = new List<App>();
             IList<ApplicationInfo> apps = Application.Context.PackageManager.GetInstalledApplications(PackageInfoFlags.MatchAll);
             for (int i = 0; i < apps.Count; i++)
             {
+                ApplicationInfo info = apps[i];
+                if(info.PackageName == null || info.PackageName == Application.Context.PackageName || 
+                   (includeSystemApps && ((info.Flags & ApplicationInfoFlags.System) != 0 ||
+                       info.PackageName.StartsWith("com.android") ||
+                       info.PackageName.StartsWith("com.google") ||
+                       info.PackageName.StartsWith("android")))) continue;
                 inApps.Add(new App(apps[i].LoadLabel(Application.Context.PackageManager), apps[i].PackageName));
             }
             return inApps;
