@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using Android.OS;
 using Xamarin.Essentials;
 using static Xamarin.Essentials.Permissions;
 using Uri = Android.Net.Uri;
@@ -62,7 +63,17 @@ namespace ComputerUtils.Android.AndroidTools
             IList<ApplicationInfo> apps = Application.Context.PackageManager.GetInstalledApplications(PackageInfoFlags.MatchAll);
             for (int i = 0; i < apps.Count; i++)
             {
-                inApps.Add(new App(apps[i].LoadLabel(Application.Context.PackageManager), apps[i].PackageName));
+                var info = apps[i];
+                if (
+                    info.PackageName != null &&
+                    (info.Flags & ApplicationInfoFlags.System) == 0 &&
+                    info.PackageName != Application.Context.PackageName &&
+                    !info.PackageName.StartsWith("com.android") &&
+                    !info.PackageName.StartsWith("com.google") &&
+                    !info.PackageName.StartsWith("android")) 
+                {
+                    inApps.Add(new App(info.LoadLabel(Application.Context.PackageManager), info.PackageName));
+                };
             }
             return inApps;
         }
