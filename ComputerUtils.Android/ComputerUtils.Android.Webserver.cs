@@ -669,7 +669,7 @@ namespace ComputerUtils.Android.Webserver
                 foreach (KeyValuePair<string, string> header in headers) context.Response.Headers[header.Key] = header.Value;
             }
             //Logger.Log("    Sending " + data.LongLength + " bytes of data to " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " from " + path);
-            context.Response.OutputStream.WriteAsync(data, 0, data.Length);
+            context.Response.OutputStream.Write(data, 0, data.Length);
             serverRequestDetails.sentData = data;
             serverRequestDetails.sentContentType = contentType;
             serverRequestDetails.sentContentEncoding = contentEncoding;
@@ -808,7 +808,7 @@ namespace ComputerUtils.Android.Webserver
                 return;
             }
             Logger.Log("    Sending " + data.LongLength + " bytes of data to " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " via websocket at " + path);
-            handler.socket.SendAsync(new ArraySegment<byte>(data, 0, data.Length), WebSocketMessageType.Text, receiveResult.EndOfMessage, CancellationToken.None);
+            handler.socket.SendAsync(new ArraySegment<byte>(data, 0, data.Length), WebSocketMessageType.Text, receiveResult.EndOfMessage, CancellationToken.None).Wait();
             if (closeRequest) Close();
         }
 
