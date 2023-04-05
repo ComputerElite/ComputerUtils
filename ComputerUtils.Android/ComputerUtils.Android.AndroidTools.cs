@@ -64,7 +64,7 @@ namespace ComputerUtils.Android.AndroidTools
             {
                 ApplicationInfo info = apps[i];
                 if(info.PackageName == null || info.PackageName == Application.Context.PackageName || 
-                   (includeSystemApps && ((info.Flags & ApplicationInfoFlags.System) != 0 ||
+                   (!includeSystemApps && ((info.Flags & ApplicationInfoFlags.System) != 0 ||
                        info.PackageName.StartsWith("com.android") ||
                        info.PackageName.StartsWith("com.google") ||
                        info.PackageName.StartsWith("android")))) continue;

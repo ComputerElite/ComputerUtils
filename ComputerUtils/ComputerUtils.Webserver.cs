@@ -74,9 +74,9 @@ namespace ComputerUtils.Webserver
             {
                 threadPool[i] = null;
             }
+            listener.Start();
 			serverThread = new Thread(() =>
             {
-                listener.Start();
                 bool foundThread = false;
                 while (true)
                 {

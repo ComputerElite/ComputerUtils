@@ -60,10 +60,10 @@ namespace ComputerUtils.Android.Webserver
                 }
                 
             }
+            listener.Start();
             
             serverThread = new Thread(() =>
             {
-                listener.Start();
                 while (true)
                 {
                     try
