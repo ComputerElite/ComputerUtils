@@ -60,7 +60,6 @@ namespace ComputerUtils.Android.Webserver
                 }
                 
             }
-            listener.Start();
             
             serverThread = new Thread(() =>
             {
@@ -127,7 +126,16 @@ namespace ComputerUtils.Android.Webserver
                     }
                 }
             });
-            serverThread.Start();
+
+            try
+            {
+                listener.Start();
+                serverThread.Start();
+            }
+            catch (Exception e)
+            {
+                Logger.Log("Webserver not listening: " + e, LoggingType.Warning);
+            }
         }
 
         public CacheResponse GetCacheResponse(ServerRequest request)

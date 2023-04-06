@@ -9,6 +9,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using Android.OS;
+using Android.Provider;
 using Xamarin.Essentials;
 using static Xamarin.Essentials.Permissions;
 using Uri = Android.Net.Uri;
@@ -62,6 +64,7 @@ namespace ComputerUtils.Android.AndroidTools
             IList<ApplicationInfo> apps = Application.Context.PackageManager.GetInstalledApplications(PackageInfoFlags.MatchAll);
             for (int i = 0; i < apps.Count; i++)
             {
+                if(apps[i].PackageName == "com.beatgames.beatsaber") Logger.Log("Found Beat Saber!");
                 ApplicationInfo info = apps[i];
                 if(info.PackageName == null || info.PackageName == Application.Context.PackageName || 
                    (!includeSystemApps && ((info.Flags & ApplicationInfoFlags.System) != 0 ||
@@ -115,11 +118,52 @@ namespace ComputerUtils.Android.AndroidTools
 
         public static void InitiateInstallApk(string apkLocation)
         {
+            Uri uri = FileProvider.GetUriForFile(
+                AndroidCore.context,
+                AndroidCore.context.PackageName + ".provider",
+                new Java.IO.File(apkLocation)
+            );
             Intent intent = new Intent(Intent.ActionInstallPackage);
-            intent.SetDataAndType(FileProvider.GetUriForFile(AndroidCore.context, AndroidCore.context.PackageName + ".provider", new Java.IO.File(apkLocation)), "application/vnd.android.package-archive");
-            intent.SetFlags(ActivityFlags.GrantReadUriPermission);
+            intent.SetDataAndType(uri, "application/vnd.android.package-archive");
+            intent.AddFlags(ActivityFlags.GrantReadUriPermission );
             intent.PutExtra(Intent.ExtraReturnResult, true);
+            AndroidCore.installLauncher.Launch(intent);
+            /*
+             SideQuest decompiled
+            Uri uri = FileProvider.GetUriForFile(AndroidCore.context, AndroidCore.context.PackageName + ".provider", new Java.IO.File(apkLocation));
+            Intent intent = new Intent("android.intent.action.INSTALL_PACKAGE");
+            intent.SetDataAndType(uri, "application/vnd.android.package-archive");
+            intent.AddFlags(ActivityFlags.GrantReadUriPermission);
+            intent.PutExtra("android.intent.extra.INSTALLER_PACKAGE_NAME", AndroidCore.context.PackageName);
+            intent.PutExtra("android.intent.extra.RETURN_RESULT", true);
             AndroidCore.context.StartActivity(intent);
+            */
+            /*
+             * 
+            PackageManager pm = AndroidCore.context.PackageManager;
+            if (!pm.CanRequestPackageInstalls())
+            {
+                Intent ini = new Intent(Settings.ActionManageUnknownAppSources);
+                ini.SetData(Uri.Parse("package:" + AndroidCore.context.PackageName));
+                AndroidCore.context.StartActivity(ini);
+                return;
+            }
+            PackageInstaller.SessionParams para = new PackageInstaller.SessionParams(PackageInstallMode.FullInstall);
+            int sessionId = pm.PackageInstaller.CreateSession(para);
+            PackageInstaller.Session session = pm.PackageInstaller.OpenSession(sessionId);
+            Stream o = session.OpenWrite("myApp.apk", 0, -1);
+            Stream i = File.OpenRead(apkLocation);
+            i.CopyTo(o);
+            session.Fsync(o);
+            o.Close();
+            i.Close();
+            // Create a PendingIntent for the installation result
+            Intent intent = new Intent(Intent.ActionInstallPackage);
+            PendingIntent pendingIntent = PendingIntent.GetBroadcast(AndroidCore.context, sessionId, intent, PendingIntentFlags.Immutable);
+
+            // Commit the session and start the installation process
+            session.Commit(pendingIntent.IntentSender);
+             */
         }
     }
 
