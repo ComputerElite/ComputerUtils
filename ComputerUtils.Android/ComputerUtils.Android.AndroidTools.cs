@@ -64,7 +64,6 @@ namespace ComputerUtils.Android.AndroidTools
             IList<ApplicationInfo> apps = Application.Context.PackageManager.GetInstalledApplications(PackageInfoFlags.MatchAll);
             for (int i = 0; i < apps.Count; i++)
             {
-                if(apps[i].PackageName == "com.beatgames.beatsaber") Logger.Log("Found Beat Saber!");
                 ApplicationInfo info = apps[i];
                 if(info.PackageName == null || info.PackageName == Application.Context.PackageName || 
                    (!includeSystemApps && ((info.Flags & ApplicationInfoFlags.System) != 0 ||
