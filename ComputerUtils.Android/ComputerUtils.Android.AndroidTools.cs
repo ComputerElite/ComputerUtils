@@ -115,6 +115,23 @@ namespace ComputerUtils.Android.AndroidTools
             }
             return installed;
         }
+        
+        public static bool HasManageExternalStoragePermission(string packageName)
+        {
+            PackageManager pm = AndroidCore.context.PackageManager;
+            ApplicationInfo appInfo;
+            try
+            {
+                appInfo = pm.GetApplicationInfo(packageName, 0);
+            }
+            catch (PackageManager.NameNotFoundException e)
+            {
+                return false;
+            }
+            AppOpsManager appOps = (AppOpsManager)AndroidCore.context.GetSystemService(Context.AppOpsService);
+            AppOpsManagerMode mode = appOps.UnsafeCheckOpNoThrow("android:manage_external_storage", appInfo.Uid, appInfo.PackageName);
+            return mode == AppOpsManagerMode.Allowed;
+        }
 
         public static void InitiateInstallApk(string apkLocation)
         {
