@@ -107,12 +107,11 @@ namespace ComputerUtils.Android.AndroidTools
 
         public static bool IsPackageInstalled(string package)
         {
-            bool installed = false;
             foreach (App a in GetInstalledApps())
             {
-                if (a.PackageName == package) { installed = true; break; }
+                if (a.PackageName == package) return true;
             }
-            return installed;
+            return false;
         }
         
         public static bool HasManageExternalStoragePermission(string packageName)
@@ -180,6 +179,11 @@ namespace ComputerUtils.Android.AndroidTools
             // Commit the session and start the installation process
             session.Commit(pendingIntent.IntentSender);
              */
+        }
+
+        public static string GetDeviceID()
+        {
+            return Settings.Secure.GetString(AndroidCore.context.ContentResolver, Settings.Secure.AndroidId);
         }
     }
 

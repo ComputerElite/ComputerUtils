@@ -122,5 +122,30 @@ namespace ComputerUtils.Android.FileManaging
         {
             if (File.Exists(file)) File.Delete(file);
         }
+
+        public static void LogTree(string directory, int depth)
+        {
+            foreach (string dir in Directory.GetDirectories(directory))
+            {
+                Logger.Log(GetTreePrefix(depth) + Path.GetFileName(dir));
+                LogTree(dir, depth + 1);
+            }
+
+            foreach (string file in Directory.GetFiles(directory))
+            {
+                Logger.Log(GetTreePrefix(depth) + Path.GetFileName(file));
+            }
+        }
+        
+        public static string GetTreePrefix(int depth)
+        {
+            string prefix = "";
+            for (int i = 0; i < depth - 1; i++)
+            {
+                prefix += "|  ";
+            }
+            if(depth > 0)prefix += "├── ";
+            return prefix;
+        }
     }
 }
