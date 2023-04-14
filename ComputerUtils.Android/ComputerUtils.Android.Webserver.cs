@@ -196,6 +196,7 @@ namespace ComputerUtils.Android.Webserver
                 }
             }
 
+            ips.Clear();
             // add ips
             foreach (int port in ports)
             {
