@@ -262,16 +262,29 @@ namespace ComputerUtils.Android.Webserver
             }), false, ignoreCase, ignoreEnd, cache);
         }
 
-        public void AddRouteFolderWithFiles(string path, string folderPath, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false)
+        public void AddRouteFolderWithFilesFS(string path, string folderPath, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false)
         {
-            if (!folderPath.EndsWith("\\") && folderPath.Length > 0) folderPath += Path.DirectorySeparatorChar;
+            if (!folderPath.EndsWith(Path.DirectorySeparatorChar) && folderPath.Length > 0) folderPath += Path.DirectorySeparatorChar;
             if (path.EndsWith("/")) path = path.Substring(0, path.Length - 1);
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
                 string file = folderPath + ServerRequest.path.Substring(path.Length + 1).Replace('/', Path.DirectorySeparatorChar);
                 //Logger.Log(file);
-                if (File.Exists(file)) ServerRequest.SendFile(file);
+                if (File.Exists(file)) ServerRequest.SendFileFS(file);
                 else ServerRequest.Send404();
+                return true;
+            }), true, ignoreCase, ignoreEnd, cache);
+        }
+        
+        public void AddRouteFolderWithFiles(string path, string folderPath, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false)
+        {
+            if (!folderPath.EndsWith(Path.DirectorySeparatorChar) && folderPath.Length > 0) folderPath += Path.DirectorySeparatorChar;
+            if (path.EndsWith("/")) path = path.Substring(0, path.Length - 1);
+            AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
+            {
+                string file = folderPath + ServerRequest.path.Substring(path.Length + 1).Replace('/', Path.DirectorySeparatorChar);
+                //Logger.Log(file);
+                ServerRequest.SendFile(file);
                 return true;
             }), true, ignoreCase, ignoreEnd, cache);
         }
