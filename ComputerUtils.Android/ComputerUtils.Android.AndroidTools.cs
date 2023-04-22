@@ -74,6 +74,19 @@ namespace ComputerUtils.Android.AndroidTools
             }
             return inApps;
         }
+        
+        public static string GetAppname(string packageName)
+        {
+            IList<ApplicationInfo> apps = Application.Context.PackageManager.GetInstalledApplications(PackageInfoFlags.MatchAll);
+            for (int i = 0; i < apps.Count; i++)
+            {
+                ApplicationInfo info = apps[i];
+                if(info.PackageName == null || info.PackageName == Application.Context.PackageName) continue;
+                if(info.PackageName == packageName) return info.LoadLabel(Application.Context.PackageManager);
+            }
+
+            return packageName;
+        }
 
 		public static void LaunchApp(string packageName)
 		{
