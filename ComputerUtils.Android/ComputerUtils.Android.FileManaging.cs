@@ -147,5 +147,18 @@ namespace ComputerUtils.Android.FileManaging
             if(depth > 0)prefix += "├── ";
             return prefix;
         }
+
+        public static string GetLastCharactersOfFile(string file, int length)
+        {
+            if (!File.Exists(file)) return "";
+            if (length > new FileInfo(file).Length) return File.ReadAllText(file);
+            using (FileStream fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            {
+                fs.Seek(-length, SeekOrigin.End);
+                byte[] bytes = new byte[length];
+                fs.Read(bytes, 0, length);
+                return System.Text.Encoding.UTF8.GetString(bytes);
+            }
+        }
     }
 }

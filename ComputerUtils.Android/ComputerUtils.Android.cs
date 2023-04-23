@@ -23,7 +23,7 @@ namespace ComputerUtils.Android
         {
             if (result is ActivityResult activityResult)
             {
-                ComputerUtils.Android.Logging.Logger.Log(((ActivityResult)result).ResultCode.ToString(), LoggingType.Debug);
+                Logging.Logger.Log("Installation activity result code: " + ((ActivityResult)result).ResultCode.ToString(), LoggingType.Debug);
             }
         }
     }
