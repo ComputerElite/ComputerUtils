@@ -215,9 +215,9 @@ namespace ComputerUtils.Android.Webserver
             defaultResponseHeaders = headers;
         }
 
-        public void AddRoute(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false, int cacheValidityInSeconds = 0)
+        public void AddRoute(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false, int cacheValidityInSeconds = 0, bool clientCache = false, int clientCacheValidityInSeconds = 0)
         {
-            routes.Add(new Route(method, path, action, onlyCheckBeginning, ignoreCase, ignoreEnd, cache, cacheValidityInSeconds));
+            routes.Add(new Route(method, path, action, onlyCheckBeginning, ignoreCase, ignoreEnd, cache, cacheValidityInSeconds, clientCache, clientCacheValidityInSeconds));
         }
 
         public void AddRouteRedirect(string method, string path, string target, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true)
@@ -233,7 +233,7 @@ namespace ComputerUtils.Android.Webserver
                 if(!target.EndsWith("/")) target += "/";
                 request.Redirect(target + request.pathDiff + queryString);
                 return true;
-            }), onlyCheckBeginning, ignoreCase, ignoreEnd, false, 0));
+            }), onlyCheckBeginning, ignoreCase, ignoreEnd, false, 0, false, 0));
         }
 
         public void RemoveRoute(string method, string path)
@@ -446,10 +446,12 @@ namespace ComputerUtils.Android.Webserver
         public bool ignoreCase { get; set; } = true;
         public bool ignoreEnd { get; set; } = true;
         public bool cache { get; set; } = false;
+        public bool clientCache { get; set; } = false;
         public int cacheValidityInSeconds { get; set; } = 0;
+        public int clientCacheValidityInSeconds { get; set; } = 0;
         public Func<ServerRequest, bool> action { get; set; } = null;
 
-        public Route(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning, bool ignoreCase, bool ignoreEnd, bool cache, int cacheValidityInSeconds)
+        public Route(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning, bool ignoreCase, bool ignoreEnd, bool cache, int cacheValidityInSeconds, bool clientCache, int clientCacheValidityInSeconds)
         {
             this.method = method;
             this.path = path;
@@ -461,6 +463,8 @@ namespace ComputerUtils.Android.Webserver
             this.ignoreEnd = ignoreEnd;
             this.cache = cache;
             this.cacheValidityInSeconds = cacheValidityInSeconds;
+            this.clientCache = clientCache;
+            this.clientCacheValidityInSeconds = clientCacheValidityInSeconds;
         }
 
         public bool UseRoute(ServerRequest request)
@@ -487,7 +491,13 @@ namespace ComputerUtils.Android.Webserver
 
         public bool UseRouteWithCache(ServerRequest request)
         {
-            if (!cache) return action(request);
+            if (clientCache)
+            {
+                if (clientCacheValidityInSeconds != 0) request.automaticHeaders.Add("Cache-Control", "max-age=" + clientCacheValidityInSeconds);
+                else if (cacheValidityInSeconds != 0) request.automaticHeaders.Add("Cache-Control", "max-age=" + cacheValidityInSeconds);
+                else request.automaticHeaders.Add("Cache-Control", "max-age=" + request.server.DefaultCacheValidityInSeconds);
+            }
+            if (!cache|| request.server.DefaultCacheValidityInSeconds == 0) return action(request);
             CacheResponse c = request.server.GetCacheResponse(request);
             if (c == null)
             {
@@ -573,6 +583,7 @@ namespace ComputerUtils.Android.Webserver
         public object customObject { get; set; } = null;
         public CookieCollection cookies { get; set; } = null;
         public NameValueCollection queryString { get; set; } = null;
+        public Dictionary<string, string> automaticHeaders = new Dictionary<string, string>();
 
         public ServerRequestDetails serverRequestDetails { get; set; } = new ServerRequestDetails();
 
@@ -685,6 +696,10 @@ namespace ComputerUtils.Android.Webserver
             if (server.defaultResponseHeaders != null)
             {
                 foreach (KeyValuePair<string, string> header in server.defaultResponseHeaders) context.Response.Headers[header.Key] = header.Value;
+            }
+            if (automaticHeaders != null)
+            {
+                foreach (KeyValuePair<string, string> header in automaticHeaders) context.Response.Headers[header.Key] = header.Value;
             }
             if (headers != null)
             {

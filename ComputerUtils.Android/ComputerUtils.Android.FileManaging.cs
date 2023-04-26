@@ -88,14 +88,14 @@ namespace ComputerUtils.Android.FileManaging
             }
         }
 
-        public static DirectoryInfo CreateDirectoryIfNotExisting(string path)
+        public static void CreateDirectoryIfNotExisting(string path)
         {
             if (!Directory.Exists(path))
             {
                 Logger.Log("Creating " + path);
                 Directory.CreateDirectory(path);
             }
-            return new DirectoryInfo(path);
+            return;
         }
 
         public static DirectoryInfo RecreateDirectoryIfExisting(string path)
