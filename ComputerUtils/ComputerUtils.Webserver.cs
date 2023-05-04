@@ -319,7 +319,7 @@ namespace ComputerUtils.Webserver
 
         public void AddWSRoute(string path, Action<SocketServerRequest> action, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true)
         {
-            wsRoutes.Add(new WebsocketRoute("", action, onlyCheckBeginning, ignoreCase, ignoreEnd));
+            wsRoutes.Add(new WebsocketRoute(path, action, onlyCheckBeginning, ignoreCase, ignoreEnd));
         }
 
         public void RemoveWSRoute(string method, string path)
@@ -727,6 +727,7 @@ namespace ComputerUtils.Webserver
     {
         public HttpListenerContext context { get; set; } = null;
         public string path { get; set; } = "/";
+        public string pathDiff { get; set; } = "/";
         public HttpServer server { get; set; } = null;
         public bool closed { get; set; } = false;
         public object customObject { get; set; } = null;
@@ -739,6 +740,7 @@ namespace ComputerUtils.Webserver
             this.path = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
             this.server = server;
             this.route = route;
+            if(path.Length >= route.path.Length) pathDiff = path.Substring(route.path.Length);
             try
             {
                 socket = context.AcceptWebSocketAsync(null).Result.WebSocket;
@@ -778,7 +780,7 @@ namespace ComputerUtils.Webserver
                     } else
                     {
                         buffer = buffer.TakeWhile((v, index) => buffer.Skip(index).Any(w => w != 0x00)).ToArray();
-                        SocketServerRequest socketRequest = new SocketServerRequest(context, server, this, result, buffer);
+                        SocketServerRequest socketRequest = new SocketServerRequest(context, server, this, result, buffer, pathDiff);
                         if (server.logRequests) Logger.Log("Websocket from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " sent " + (socketRequest.bodyString.Length > 500 ? socketRequest.bodyString.Substring(0, 500) + " [...]" : socketRequest.bodyString));
                         route.action(socketRequest);
                     }
@@ -805,17 +807,21 @@ namespace ComputerUtils.Webserver
     {
         public HttpListenerContext context { get; set; } = null;
         public string path { get; set; } = "/";
+        public string pathDiff { get; set; } = "";
         public HttpServer server { get; set; } = null;
         public byte[] bodyBytes { get; set; } = new byte[0];
         public string bodyString { get; set; } = "";
         public object customObject { get; set; } = null;
         public SocketHandler handler { get; set; } = null;
+        public NameValueCollection queryString { get; set; } = null;
         public WebSocketReceiveResult receiveResult { get; set; } = null;
 
-        public SocketServerRequest(HttpListenerContext context, HttpServer server, SocketHandler handler, WebSocketReceiveResult receiveResult, byte[] bytes)
+        public SocketServerRequest(HttpListenerContext context, HttpServer server, SocketHandler handler, WebSocketReceiveResult receiveResult, byte[] bytes, string pathDiff)
         {
+            this.queryString = context.Request.QueryString;
             this.context = context;
             this.path = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
+            this.pathDiff = pathDiff;
             this.server = server;
             this.handler = handler;
             this.bodyString = Encoding.UTF8.GetString(bytes);

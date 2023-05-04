@@ -68,57 +68,7 @@ namespace ComputerUtils.Android.Webserver
                     try
                     {
                         HttpListenerContext context = listener.GetContextAsync().Result;
-                        Thread t = new Thread(() =>
-                        {
-                            try
-                            {
-                                if (context.Request.IsWebSocketRequest || context.Request.Headers["Sec-WebSocket-Version"] != null)
-                                {
-                                    Logger.Log("Websocket connected from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()));
-                                    context.Request.Headers["Upgrade"] = "websocket";
-                                    context.Request.Headers["Connection"] = "Upgrade";
-                                    string uRL = DecodeUrlString(context.Request.Url.AbsolutePath);
-                                    if(onWebsocketConnectRequest != null) onWebsocketConnectRequest.Invoke(uRL);
-                                    bool found = false;
-                                    for (int i = 0; i < wsRoutes.Count; i++)
-                                    {
-                                        if (wsRoutes[i].UseRoute(uRL))
-                                        {
-                                            SocketHandler handler = new SocketHandler(context, this, wsRoutes[i]);
-                                            found = true;
-                                            break;
-                                        }
-                                    }
-                                    if(!found)
-                                    {
-                                        context.Response.StatusCode = 404;
-                                        context.Response.Close();
-                                    }
-                                }
-                                else
-                                {
-                                    ServerRequest request = new ServerRequest(context, this);
-                                    //Logger.Log(request.ToString());
-                                    if (!accessCheck(request))
-                                    {
-                                        if (!request.closed) request.Send403();
-                                        return;
-                                    }
-                                    for (int i = 0; i < routes.Count; i++)
-                                    {
-                                        if (routes[i].UseRoute(request)) break;
-                                    }
-                                    if (!request.closed) request.Send404();
-                                    request.Dispose();
-                                }
-                            }
-                            catch (Exception e)
-                            {
-                                context.Response.Close();
-                                Logger.Log("An error occured while handling a request:\n" + e.ToString(), LoggingType.Error);
-                            }
-                        });
-                        t.Start();
+                        ThreadPool.QueueUserWorkItem(HandleRequest, context);
                     }
                     catch (Exception e)
                     {
@@ -135,6 +85,58 @@ namespace ComputerUtils.Android.Webserver
             catch (Exception e)
             {
                 Logger.Log("Webserver not listening: " + e, LoggingType.Warning);
+            }
+        }
+        
+        public void HandleRequest(object c)
+        {
+            HttpListenerContext context = (HttpListenerContext)c;
+            try
+            {
+                if (context.Request.IsWebSocketRequest || context.Request.Headers["Sec-WebSocket-Version"] != null)
+                {
+                    Logger.Log("Websocket connected from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()));
+                    context.Request.Headers["Upgrade"] = "websocket";
+                    context.Request.Headers["Connection"] = "Upgrade";
+                    string uRL = DecodeUrlString(context.Request.Url.AbsolutePath);
+                    if(onWebsocketConnectRequest != null) onWebsocketConnectRequest.Invoke(uRL);
+                    bool found = false;
+                    for (int i = 0; i < wsRoutes.Count; i++)
+                    {
+                        if (wsRoutes[i].UseRoute(uRL))
+                        {
+                            SocketHandler handler = new SocketHandler(context, this, wsRoutes[i]);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if(!found)
+                    {
+                        context.Response.StatusCode = 404;
+                        context.Response.Close();
+                    }
+                }
+                else
+                {
+                    ServerRequest request = new ServerRequest(context, this);
+                    //Logger.Log(request.ToString());
+                    if (!accessCheck(request))
+                    {
+                        if (!request.closed) request.Send403();
+                        return;
+                    }
+                    for (int i = 0; i < routes.Count; i++)
+                    {
+                        if (routes[i].UseRoute(request)) break;
+                    }
+                    if (!request.closed) request.Send404();
+                    request.Dispose();
+                }
+            }
+            catch (Exception e)
+            {
+                context.Response.Close();
+                Logger.Log("An error occured while handling a request:\n" + e.ToString(), LoggingType.Error);
             }
         }
 
