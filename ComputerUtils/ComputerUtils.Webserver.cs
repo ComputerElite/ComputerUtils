@@ -143,9 +143,13 @@ namespace ComputerUtils.Webserver
             }
         }
 
+        private DateTime lastFullClean = DateTime.MinValue;
+        private TimeSpan timeBetweenFullCleans = new TimeSpan(0, 0, 30);
         public CacheResponse GetCacheResponse(ServerRequest request)
         {
             DateTime now = DateTime.Now;
+            CacheResponse r = null;
+            bool match = false;
             for (int i = 0; i < cache.Count; i++)
             {
                 if (cache[i] == null)
@@ -154,23 +158,30 @@ namespace ComputerUtils.Webserver
                     i--;
                     continue;
                 }
-                if (cache[i].origin == request.origin && cache[i].method == request.method && cache[i].path == request.path && cache[i].uA == request.context.Request.UserAgent)
+                if (!match && cache[i].origin == request.origin && cache[i].method == request.method && cache[i].path == request.path && cache[i].uA == request.context.Request.UserAgent)
                 {
                     if (request.queryString.Count != cache[i].queryStrings.Count) continue;
-                    bool match = true;
+                    match = true;
                     foreach(string key in request.queryString.Keys)
                     {
                         if (request.queryString[key] != cache[i].queryStrings[key]) match = false;
                     }
                     if(!match) continue;
-                    return cache[i];
+                    if (DateTime.Now - lastFullClean >= timeBetweenFullCleans)
+                    {
+                        // Clean cache, aka finish looping through all entries, remove all invalid ones
+                        r = cache[i];
+                    }
+                    else return cache[i];
                 }
                 if(cache[i].validilityTime < now)
                 {
                     cache.Remove(cache[i]);
                 }
             }
-            return null;
+
+            if (r != null) lastFullClean = DateTime.Now;
+            return r;
         }
 
         public void AddCacheResponse(ServerRequest request, int cacheValidityInSeconds)
