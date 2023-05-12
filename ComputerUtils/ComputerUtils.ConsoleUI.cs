@@ -446,7 +446,8 @@ namespace ComputerUtils.ConsoleUi
             Console.ForegroundColor = ConsoleColor.Blue;
             Console.WriteLine(Logger.CensorString(downloadLink));
             Console.ForegroundColor = ConsoleColor.White;
-            WebClient c = new WebClient();
+            ComputerUtils_FastFileDownloader.FileDownloader downloader =
+                new ComputerUtils_FastFileDownloader.FileDownloader();
            
             bool locked = false;
             long lastBytes = 0;
@@ -457,7 +458,7 @@ namespace ComputerUtils.ConsoleUi
             List<long> lastBytesPerSec = new List<long>();
             long BytesToRecieve = 0;
             progressBar.UpdateProgress(0, 1, "0", "0", "Download started");
-            c.DownloadProgressChanged += (o, e) =>
+            downloader.OnDownloadProgress += () =>
             {
                 if (locked) return;
                 
@@ -465,25 +466,40 @@ namespace ComputerUtils.ConsoleUi
                 double secondsPassed = (DateTime.Now - lastUpdate).TotalSeconds;
                 if (secondsPassed >= progressBar.UpdateRate)
                 {
-                    BytesToRecieve = e.TotalBytesToReceive;
-                    string current = SizeConverter.ByteSizeToString(e.BytesReceived);
+                    BytesToRecieve = downloader.totalBytes;
+                    string current = SizeConverter.ByteSizeToString(downloader.downloadedBytes);
                     string total = SizeConverter.ByteSizeToString(BytesToRecieve);
-                    long bytesPerSec = (long)Math.Round((e.BytesReceived - lastBytes) / secondsPassed);
+                    long bytesPerSec = (long)Math.Round((downloader.downloadedBytes - lastBytes) / secondsPassed);
                     lastBytesPerSec.Add(bytesPerSec);
                     if (lastBytesPerSec.Count > 5) lastBytesPerSec.RemoveAt(0);
-                    lastBytes = e.BytesReceived;
+                    lastBytes = downloader.downloadedBytes;
                     long avg = 0;
                     foreach (long l in lastBytesPerSec) avg += l;
                     avg = avg / lastBytesPerSec.Count;
-                    progressBar.UpdateProgress(e.BytesReceived, BytesToRecieve, current, total, SizeConverter.ByteSizeToString(bytesPerSec, 0) + "/s", true);
+                    progressBar.UpdateProgress(downloader.downloadedBytes, BytesToRecieve, current, total, SizeConverter.ByteSizeToString(bytesPerSec, 0) + "/s", true);
                     lastUpdate = DateTime.Now;
                 }
                 locked = false;
             };
-            c.DownloadFileCompleted += (o, e) =>
+            downloader.OnDownloadError += () =>
             {
-                if(e.Error == null) success = true;
-                Logger.Log("Did download succeed: " + success + (success ? "" : ":\n" + e.Error.ToString()));
+                success = true;
+                Logger.Log("Did download succeed: " + success + (success ? "" : ":\n" + downloader.exception));
+                progressBar.UpdateProgress(BytesToRecieve, BytesToRecieve,
+                    SizeConverter.ByteSizeToString(BytesToRecieve), SizeConverter.ByteSizeToString(BytesToRecieve),
+                    success ? "Finished" : "An error occured");
+                completed = true;
+                Console.WriteLine();
+                if (clearAfterwads)
+                {
+                    progressBar.currentLine = currentLine;
+                    progressBar.ClearCurrentLine();
+                }
+            };
+            downloader.OnDownloadComplete += () =>
+            {
+                success = true;
+                Logger.Log("Did download succeed: " + success);
                 progressBar.UpdateProgress(BytesToRecieve, BytesToRecieve, SizeConverter.ByteSizeToString(BytesToRecieve), SizeConverter.ByteSizeToString(BytesToRecieve), success ? "Finished" : "An error occured");
                 completed = true;
                 Console.WriteLine();
@@ -497,10 +513,10 @@ namespace ComputerUtils.ConsoleUi
             {
                 foreach(KeyValuePair<string, string> h in headers)
                 {
-                    c.Headers[h.Key] = h.Value;
+                    downloader.headers[h.Key] = h.Value;
                 }
             }
-            c.DownloadFileAsync(new Uri(downloadLink), destination);
+            downloader.DownloadFile(downloadLink, destination, 10);
             while (!completed)
             {
                 await TimeDelay.DelayWithoutThreadBlock(100);
