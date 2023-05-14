@@ -184,6 +184,7 @@ namespace ComputerUtils.Webserver
             return r;
         }
 
+        public Process currentProcess = Process.GetCurrentProcess();
         public void AddCacheResponse(ServerRequest request, int cacheValidityInSeconds)
         {
             CacheResponse res = new CacheResponse();
@@ -197,7 +198,6 @@ namespace ComputerUtils.Webserver
             cache.Add(res);
 
             // remove cache response if too much ram
-            Process currentProcess = Process.GetCurrentProcess();
             while (currentProcess.WorkingSet64 >= maxRamUsage && cache.Count > 0)
             {
                 cache.RemoveAt(0);
