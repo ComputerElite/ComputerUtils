@@ -158,7 +158,7 @@ namespace ComputerUtils.Webserver
                     i--;
                     continue;
                 }
-                if (!match && cache[i].origin == request.origin && cache[i].method == request.method && cache[i].path == request.path && cache[i].uA == request.context.Request.UserAgent)
+                if (cache[i].origin == request.origin && cache[i].method == request.method && cache[i].path == request.path && cache[i].uA == request.context.Request.UserAgent)
                 {
                     if (request.queryString.Count != cache[i].queryStrings.Count) continue;
                     match = true;
@@ -192,6 +192,7 @@ namespace ComputerUtils.Webserver
             res.queryStrings = request.queryString;
             res.uA = request.context.Request.UserAgent;
             res.details= request.serverRequestDetails;
+            res.origin = request.origin;
             res.validilityTime = DateTime.Now.AddSeconds(cacheValidityInSeconds == 0 ? DefaultCacheValidityInSeconds : cacheValidityInSeconds);
             cache.Add(res);
 
@@ -438,6 +439,11 @@ namespace ComputerUtils.Webserver
             }
             
             return true;
+        }
+
+        public override string ToString()
+        {
+            return method + " " + path + " - " + origin + " - " + uA + " - valid until " + (validilityTime);
         }
     }
 
