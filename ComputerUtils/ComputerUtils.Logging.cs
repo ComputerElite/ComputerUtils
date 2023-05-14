@@ -14,6 +14,7 @@ namespace ComputerUtils.Logging {
         public static bool saveOutputInVariable { get; set; } = true;
         public static string log { get; set; } = "";
         public static List<string> notAllowedStrings { get; set; } = new List<string>();
+        public static ReaderWriterLock locker = new ReaderWriterLock();
         public static string GetLog()
         {
             string l = log;
@@ -77,18 +78,21 @@ namespace ComputerUtils.Logging {
                 }
             }
             if (logFile == "") return;
-            while(savingLog)
-            {
-                Thread.Sleep(1);
-            }
-            savingLog = true;
-            File.AppendAllText(logFile, "\n" + text);
-			savingLog = false;
+            LogRaw("\n" + text);
 		}
         public static void LogRaw(string text)
         {
             if (logFile == "") return;
-            File.AppendAllText(logFile, text);
+            try
+            {
+                // Aquire a writer lock to make sure no other thread is writing to the file
+                locker.AcquireWriterLock(10000); //You might wanna change timeout value 
+                File.AppendAllText(logFile, text);
+            }
+            finally
+            {
+                locker.ReleaseWriterLock();
+            }
         }
 
         public static string GetLinePrefix(LoggingType loggingType)

@@ -396,8 +396,9 @@ namespace ComputerUtils.ConsoleUi
         }
     }
 
-    public class DownloadProgressUI 
+    public class DownloadProgressUI
     {
+        public int connections = 1;
         public bool StartDownload(string downloadLink, string destination, bool logLink = true, bool showETA = true, Dictionary<string, string> headers = null, bool clearAfterwads = false)
         {
             return DownloadThreadHandler(downloadLink, destination, logLink, showETA, headers, clearAfterwads).Result;
@@ -516,7 +517,7 @@ namespace ComputerUtils.ConsoleUi
                     downloader.headers[h.Key] = h.Value;
                 }
             }
-            downloader.DownloadFile(downloadLink, destination, 10);
+            downloader.DownloadFile(downloadLink, destination, connections);
             while (!completed)
             {
                 await TimeDelay.DelayWithoutThreadBlock(100);
