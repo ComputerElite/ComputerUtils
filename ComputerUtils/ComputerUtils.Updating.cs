@@ -199,8 +199,7 @@ namespace ComputerUtils.Updating
             ProcessStartInfo i = new ProcessStartInfo
             {
                 FileName = "dotnet",
-                Arguments = "\"" + destDir + dllName + "\" --workingdir \"" + workingDir + "\"",
-                UseShellExecute = true
+                Arguments = "\"" + destDir + dllName + "\" --workingdir \"" + workingDir + "\""
             };
             Process.Start(i);
             Environment.Exit(0);

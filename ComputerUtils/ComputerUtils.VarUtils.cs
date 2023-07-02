@@ -95,10 +95,11 @@ namespace ComputerUtils.VarUtils
 
     public class TimeConverter
     {
-        public static DateTime UnixTimeStampToDateTime(long unixTimeStamp)
+        public static DateTime UnixTimeStampToDateTime(long? unixTimeStamp)
         {
             DateTime dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-            dateTime = dateTime.AddSeconds(unixTimeStamp);
+            if (!unixTimeStamp.HasValue) return DateTime.Now;
+            dateTime = dateTime.AddSeconds(unixTimeStamp.Value);
             return dateTime;
         }
 
