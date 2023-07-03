@@ -199,7 +199,8 @@ namespace ComputerUtils.Updating
             ProcessStartInfo i = new ProcessStartInfo
             {
                 FileName = "dotnet",
-                Arguments = "\"" + destDir + dllName + "\" --workingdir \"" + workingDir + "\""
+                Arguments = "\"" + destDir + dllName + "\" --workingdir \"" + workingDir + "\"",
+                UseShellExecute = false
             };
             Process.Start(i);
             Environment.Exit(0);
@@ -243,7 +244,7 @@ namespace ComputerUtils.Updating
             ProcessStartInfo i = new ProcessStartInfo
             {
                 Arguments = "\"" + AppDomain.CurrentDomain.BaseDirectory + "updater" + Path.DirectorySeparatorChar + dllName + "\" update --workingdir \"" + workingDir + "\"",
-                UseShellExecute = true,
+                UseShellExecute = false,
                 FileName = "dotnet"
             };
             Logger.Log("Starting " + i.FileName + " with args " + i.Arguments);
