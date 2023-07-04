@@ -90,7 +90,7 @@ public class ComputerUtils_FastFileDownloader
         
                     if (i == numConnections - 1) endPosArray[i] = fileSize - 1;
         
-                    Console.WriteLine("Connection " + i + " range: " + startPosArray[i] + "-" + endPosArray[i]);
+                    // Console.WriteLine("Connection " + i + " range: " + startPosArray[i] + "-" + endPosArray[i]);
                 }
         
                 // Create an array to store the downloaded bytes for each connection
