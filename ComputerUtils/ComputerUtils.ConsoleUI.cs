@@ -484,7 +484,7 @@ namespace ComputerUtils.ConsoleUi
             };
             downloader.OnDownloadError += () =>
             {
-                success = true;
+                success = false;
                 Logger.Log("Did download succeed: " + success + (success ? "" : ":\n" + downloader.exception));
                 progressBar.UpdateProgress(BytesToRecieve, BytesToRecieve,
                     SizeConverter.ByteSizeToString(BytesToRecieve), SizeConverter.ByteSizeToString(BytesToRecieve),

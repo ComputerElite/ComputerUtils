@@ -98,7 +98,7 @@ namespace ComputerUtils.VarUtils
         public static DateTime UnixTimeStampToDateTime(long? unixTimeStamp)
         {
             DateTime dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-            if (!unixTimeStamp.HasValue) return DateTime.Now;
+            if (!unixTimeStamp.HasValue) return DateTime.UtcNow;
             dateTime = dateTime.AddSeconds(unixTimeStamp.Value);
             return dateTime;
         }
