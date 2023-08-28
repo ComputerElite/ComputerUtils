@@ -53,16 +53,16 @@ namespace ComputerUtils.Webserver
             this.otherPrefixes = otherPrefixes == null ? new string[0] : otherPrefixes;
             HttpListener listener = new HttpListener();
             String hostName = Dns.GetHostName();
-            Logger.Log("Host name: " + hostName);
+            Logger.Log("Host name: " + hostName, LoggingType.WebServer);
             foreach(string prefix in GetPrefixes())
             {
-                Logger.Log("Server will listen on " + prefix);
+                Logger.Log("Server will listen on " + prefix, LoggingType.WebServer);
                 try
                 {
                     listener.Prefixes.Add(prefix);
                 } catch(Exception e)
                 {
-                    Logger.Log("Actually nvm that. It won't listen on " + prefix + " :\n" + e.ToString());
+                    Logger.Log("Actually nvm that. It won't listen on " + prefix + " :\n" + e.ToString(), LoggingType.WebServer);
                 }
                 
             }
@@ -96,7 +96,7 @@ namespace ComputerUtils.Webserver
                     if (logRequests)
                         Logger.Log("Websocket connected from " + (context.Request.Headers["X-Forwarded-For"] ??
                                                                   context.Request.RemoteEndPoint.Address
-                                                                      .ToString()));
+                                                                      .ToString()), LoggingType.WebServer);
                     context.Request.Headers["Upgrade"] = "websocket";
                     context.Request.Headers["Connection"] = "Upgrade";
                     string uRL = HttpUtility.UrlDecode(context.Request.Url.AbsolutePath);
@@ -120,7 +120,7 @@ namespace ComputerUtils.Webserver
                 else
                 {
                     ServerRequest request = new ServerRequest(context, this);
-                    if (logRequests) Logger.Log(request.ToString());
+                    if (logRequests) Logger.Log(request.ToString(), LoggingType.WebServer);
                     if (!accessCheck(request))
                     {
                         if (!request.closed) request.Send403();
@@ -689,7 +689,7 @@ namespace ComputerUtils.Webserver
         {
             context.Response.Redirect(target);
             Close();
-            if (server.logRequests) Logger.Log("    Redirecting " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " to " + target + " from " + path);
+            if (server.logRequests) Logger.Log("    Redirecting " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " to " + target + " from " + path, LoggingType.WebServer);
         }
 
         public void SendData(byte[] data, string contentType = "text/html", int statusCode = 200, bool closeRequest = true, Dictionary<string, string> headers = null)
@@ -715,7 +715,7 @@ namespace ComputerUtils.Webserver
             {
                 foreach (KeyValuePair<string, string> header in headers) context.Response.Headers[header.Key] = header.Value;
             }
-            if (server.logRequests) Logger.Log("    Sending " + data.LongLength + " bytes of data to " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " from " + path);
+            if (server.logRequests) Logger.Log("    Sending " + data.LongLength + " bytes of data to " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " from " + path, LoggingType.WebServer);
             context.Response.OutputStream.Write(data, 0, data.Length);
             serverRequestDetails.sentData = data;
             serverRequestDetails.sentContentType = contentType;
@@ -764,7 +764,7 @@ namespace ComputerUtils.Webserver
             }
             catch (Exception e)
             {
-                Logger.Log("Websocket failed to get accepted:\n" + e.ToString());
+                Logger.Log("Websocket failed to get accepted:\n" + e.ToString(), LoggingType.WebServer);
                 context.Response.StatusCode = 500;
                 context.Response.Close();
                 return;
@@ -791,14 +791,14 @@ namespace ComputerUtils.Webserver
                     }
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
-                        if (server.logRequests) Logger.Log("Websocket closed by client: " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()));
+                        if (server.logRequests) Logger.Log("Websocket closed by client: " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()), LoggingType.WebServer);
                         closed = true;
                         socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
                     } else
                     {
                         buffer = buffer.TakeWhile((v, index) => buffer.Skip(index).Any(w => w != 0x00)).ToArray();
                         SocketServerRequest socketRequest = new SocketServerRequest(context, server, this, result, buffer, pathDiff);
-                        if (server.logRequests) Logger.Log("Websocket from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " sent " + (socketRequest.bodyString.Length > 500 ? socketRequest.bodyString.Substring(0, 500) + " [...]" : socketRequest.bodyString));
+                        if (server.logRequests) Logger.Log("Websocket from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " sent " + (socketRequest.bodyString.Length > 500 ? socketRequest.bodyString.Substring(0, 500) + " [...]" : socketRequest.bodyString), LoggingType.WebServer);
                         route.action(socketRequest);
                     }
                 }
@@ -810,7 +810,7 @@ namespace ComputerUtils.Webserver
         public void CloseRequest()
         {
             closed = true;
-            if (server.logRequests) Logger.Log("Websocket closed by server from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()));
+            if (server.logRequests) Logger.Log("Websocket closed by server from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()), LoggingType.WebServer);
             socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
         }
 
@@ -859,7 +859,7 @@ namespace ComputerUtils.Webserver
                 handler.Dispose();
                 return;
             }
-            if (server.logRequests) Logger.Log("    Sending " + data.LongLength + " bytes of data to " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " via websocket at " + path);
+            if (server.logRequests) Logger.Log("    Sending " + data.LongLength + " bytes of data to " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " via websocket at " + path, LoggingType.WebServer);
             handler.socket.SendAsync(new ArraySegment<byte>(data, 0, data.Length), WebSocketMessageType.Text, receiveResult.EndOfMessage, CancellationToken.None);
             if (closeRequest) Close();
         }

@@ -65,6 +65,9 @@ namespace ComputerUtils.Logging {
                     case LoggingType.Important:
                         Console.ForegroundColor = ConsoleColor.Magenta;
                         break;
+                    case LoggingType.WebServer:
+                        Console.ForegroundColor = ConsoleColor.Cyan;
+                        break;
                 }
                 Console.WriteLine(longLogInConsole ? text : text.Replace(linePrefix, ""));
                 Console.ForegroundColor = ConsoleColor.White;
@@ -116,6 +119,7 @@ namespace ComputerUtils.Logging {
         Crash = 4,
         ADB = 5,
         ADBIntern = 6,
-        Important = 7
+        Important = 7,
+        WebServer = 8
     }
 }
