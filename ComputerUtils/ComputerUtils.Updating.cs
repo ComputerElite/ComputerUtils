@@ -72,6 +72,7 @@ namespace ComputerUtils.Updating
                 c.Headers.Add("user-agent", AppName + "/" + version);
                 string repoApi = "https://api.github.com/repos/" + GitHubRepoLink.Split('/')[3] + "/" + GitHubRepoLink.Split('/')[4] + "/releases";
                 string json = c.DownloadString(repoApi);
+                Logger.Log("GH API says: " + json);
                 
                 List<GithubRelease> updates = JsonSerializer.Deserialize<List<GithubRelease>>(json);
 
@@ -266,7 +267,7 @@ namespace ComputerUtils.Updating
         {
             foreach(GithubAsset a in assets)
             {
-                if (a.content_type == "application/x-zip-compressed") return a.browser_download_url;
+                if (a.content_type == "application/x-zip-compressed" || a.content_type == "application/zip") return a.browser_download_url;
             }
             return "";
         }

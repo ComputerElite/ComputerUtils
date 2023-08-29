@@ -93,7 +93,7 @@ namespace ComputerUtils.Android.AndroidTools
             Intent intent = Application.Context.PackageManager.GetLaunchIntentForPackage(packageName);
             if(intent != null)
             {
-				intent.SetFlags(ActivityFlags.NewTask);
+				intent.SetFlags(ActivityFlags.ReorderToFront);
 				AndroidCore.context.StartActivity(intent);
 			}
 		}
