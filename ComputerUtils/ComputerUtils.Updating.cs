@@ -72,7 +72,7 @@ namespace ComputerUtils.Updating
                 c.Headers.Add("user-agent", AppName + "/" + version);
                 string repoApi = "https://api.github.com/repos/" + GitHubRepoLink.Split('/')[3] + "/" + GitHubRepoLink.Split('/')[4] + "/releases";
                 string json = c.DownloadString(repoApi);
-                Logger.Log("GH API says: " + json);
+                //Logger.Log("GH API says: " + json);
                 
                 List<GithubRelease> updates = JsonSerializer.Deserialize<List<GithubRelease>>(json);
 
