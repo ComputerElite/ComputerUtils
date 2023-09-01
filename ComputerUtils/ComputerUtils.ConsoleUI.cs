@@ -350,15 +350,15 @@ namespace ComputerUtils.ConsoleUi
             currentLine = Console.CursorTop;
         }
 
-        public void UpdateProgress(int done, long total, string doneText = "", string totalText = "", string extraText = "", bool ETA = false)
+        public void UpdateProgress(int done, long total, string doneText = "", string totalText = "", string extraText = "", bool ETA = false, bool speed = false)
         {
-            UpdateProgress((long)done, (long)total, doneText, totalText, extraText, ETA);
+            UpdateProgress((long)done, (long)total, doneText, totalText, extraText, ETA, speed);
         }
         public List<long> last = new List<long>();
         public DateTime lastUpdate = DateTime.Now;
-        public void UpdateProgress(long done, long total, string doneText = "", string totalText = "", string extraText = "", bool ETA = false)
+        public void UpdateProgress(long done, long total, string doneText = "", string totalText = "", string extraText = "", bool ETA = false, bool speed = false)
         {
-            if (ETA)
+            if (ETA || speed)
             {
                 try
                 {
@@ -367,8 +367,9 @@ namespace ComputerUtils.ConsoleUi
                     if (last.Count > eTARange) last.RemoveAt(0);
                     long avg = 0;
                     foreach (long l in last) avg += l;
-                    avg = avg / last.Count;
-                    extraText += "  ETA " + (avg == 0 ? "N/A" : SizeConverter.SecondsToBetterString((total - done) / avg));
+                    avg /= last.Count;
+                    if (speed) extraText += "  " + SizeConverter.ByteSizeToString(avg) + "/s";
+                    if(ETA) extraText += "  ETA " + (avg == 0 ? "N/A" : SizeConverter.SecondsToBetterString((total - done) / avg));
 
                 }
                 catch
@@ -379,8 +380,9 @@ namespace ComputerUtils.ConsoleUi
             lastUpdate = DateTime.Now;
             this.done = done;
             this.total = total;
-            ClearCurrentLine();
+            //ClearCurrentLine();
             double percentage = (double)done / (double)total;
+            if (total == 0) percentage = 1;
             Console.SetCursorPosition(0, currentLine);
             Console.Write("  ");
             for (int i = 1; i <= ProgressbarLength; i++)
@@ -390,9 +392,13 @@ namespace ComputerUtils.ConsoleUi
                 if (localPercentage <= percentage) Console.ForegroundColor = ConsoleColor.DarkBlue;
                 Console.Write("█");
             }
-            Console.Write(" ");
-            if(doneText != "" && totalText != "") Console.Write(doneText + " / " + totalText + "   ");
-            Console.Write(extraText);
+
+            string concat = " ";
+            if(doneText != "" && totalText != "")concat += doneText + " / " + totalText + "   ";
+            concat += extraText;
+            int totalLength = concat.Length + ProgressbarLength + 2;
+            if(totalLength < Console.WindowWidth) concat += new string(' ', Console.WindowWidth - totalLength - 1);
+            Console.WriteLine(concat);
         }
     }
 
