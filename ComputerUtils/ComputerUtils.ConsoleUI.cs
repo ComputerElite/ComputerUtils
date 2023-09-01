@@ -173,6 +173,13 @@ namespace ComputerUtils.ConsoleUi
                 Console.SetCursorPosition(initialX + x, initialY + y);
             }
         }
+
+        public static void WriteEmptyLine(string text = "")
+        {
+            int totalLength = text.Length;
+            if(totalLength % Console.WindowWidth < Console.WindowWidth) text += new string(' ', Console.WindowWidth - (totalLength % Console.WindowWidth) - 1);
+            Console.WriteLine(text);
+        }
     }
 
     public class ConsoleUiToggleEventArgs
@@ -397,7 +404,7 @@ namespace ComputerUtils.ConsoleUi
             if(doneText != "" && totalText != "")concat += doneText + " / " + totalText + "   ";
             concat += extraText;
             int totalLength = concat.Length + ProgressbarLength + 2;
-            if(totalLength < Console.WindowWidth) concat += new string(' ', Console.WindowWidth - totalLength - 1);
+            if(totalLength % Console.WindowWidth < Console.WindowWidth) concat += new string(' ', Console.WindowWidth - (totalLength % Console.WindowWidth) - 1);
             Console.WriteLine(concat);
         }
     }
@@ -456,37 +463,23 @@ namespace ComputerUtils.ConsoleUi
             ComputerUtils_FastFileDownloader.FileDownloader downloader =
                 new ComputerUtils_FastFileDownloader.FileDownloader();
            
-            bool locked = false;
-            long lastBytes = 0;
             ProgressBarUI progressBar = new ProgressBarUI();
             progressBar.eTARange = 20;
             DateTime lastUpdate = DateTime.MinValue;
 			progressBar.Start();
-            List<long> lastBytesPerSec = new List<long>();
             long BytesToRecieve = 0;
             progressBar.UpdateProgress(0, 1, "0", "0", "Download started");
             downloader.OnDownloadProgress += () =>
             {
-                if (locked) return;
-                
-                locked = true;
                 double secondsPassed = (DateTime.Now - lastUpdate).TotalSeconds;
                 if (secondsPassed >= progressBar.UpdateRate)
                 {
                     BytesToRecieve = downloader.totalBytes;
                     string current = SizeConverter.ByteSizeToString(downloader.downloadedBytes);
                     string total = SizeConverter.ByteSizeToString(BytesToRecieve);
-                    long bytesPerSec = (long)Math.Round((downloader.downloadedBytes - lastBytes) / secondsPassed);
-                    lastBytesPerSec.Add(bytesPerSec);
-                    if (lastBytesPerSec.Count > 5) lastBytesPerSec.RemoveAt(0);
-                    lastBytes = downloader.downloadedBytes;
-                    long avg = 0;
-                    foreach (long l in lastBytesPerSec) avg += l;
-                    avg = avg / lastBytesPerSec.Count;
-                    progressBar.UpdateProgress(downloader.downloadedBytes, BytesToRecieve, current, total, SizeConverter.ByteSizeToString(bytesPerSec, 0) + "/s", true);
+                    progressBar.UpdateProgress(downloader.downloadedBytes, downloader.totalBytes, current, total, "", true, true);
                     lastUpdate = DateTime.Now;
                 }
-                locked = false;
             };
             downloader.OnDownloadError += () =>
             {
