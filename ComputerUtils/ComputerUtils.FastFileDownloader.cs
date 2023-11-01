@@ -84,7 +84,7 @@ public class ComputerUtils_FastFileDownloader
                     }
                     totalBytes = fileSize;
             
-                    Logger.Log("File size: " + fileSize);
+                    Logger.Log("File sizee: " + fileSize);
             
                     chunkSize = fileSize / numConnections;
             
@@ -119,6 +119,7 @@ public class ComputerUtils_FastFileDownloader
                     }).Start();
                 }
                     
+                Logger.Log("Tracking download progress");
                 // Wait for all threads to complete
                 while (true)
                 {
@@ -128,12 +129,16 @@ public class ComputerUtils_FastFileDownloader
                         downloadedBytes += bytesDownloadedArray[i];
                     }
 
-                    if (canceled || error) return;
+                    if (canceled || error)
+                    {
+                        Logger.Log("Download cancelled or has error");
+                        return;
+                    }
         
                     //double progress = (double)downloadedBytes / fileSize * 100;
                     //Logger.Log("Download progress: " + progress.ToString("0.00") + "%");
+                    Logger.Log(downloadedBytes + " " + fileSize);
                     OnDownloadProgress.Invoke();
-        
                     if (downloadedBytes == fileSize) break;
                     Thread.Sleep(200);
                 }
