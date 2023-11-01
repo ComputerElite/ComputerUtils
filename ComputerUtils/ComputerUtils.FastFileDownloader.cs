@@ -40,7 +40,15 @@ public class ComputerUtils_FastFileDownloader
             {
                 Thread t = new Thread(() =>
                 {
-                    DownloadFileInternal(url, savePath, numConnections);
+                    try
+                    {
+                        DownloadFileInternal(url, savePath, numConnections);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Log("Exception while downloading: " + e, LoggingType.Warning);
+                        if(OnDownloadError != null) OnDownloadError.Invoke();
+                    }
                 });
                 t.Start();
             }
@@ -69,7 +77,7 @@ public class ComputerUtils_FastFileDownloader
                         Logger.Log("Error while GET request: " + e);
                         error = true;
                         exception = e;
-                        OnDownloadError?.Invoke();
+                        if(OnDownloadError != null) OnDownloadError?.Invoke();
                         return;
                     }
 
@@ -79,7 +87,7 @@ public class ComputerUtils_FastFileDownloader
                         Logger.Log("File size is " + fileSize + ". Thus we cannot download the file");
                         error = true;
                         exception = new Exception("File size is 0");
-                        OnDownloadError?.Invoke();
+                        if(OnDownloadError != null) OnDownloadError?.Invoke();
                         return;
                     }
                     totalBytes = fileSize;
@@ -137,7 +145,7 @@ public class ComputerUtils_FastFileDownloader
                     //double progress = (double)downloadedBytes / fileSize * 100;
                     //Logger.Log("Download progress: " + progress.ToString("0.00") + "%");
                     //Logger.Log(downloadedBytes + " " + fileSize);
-                    OnDownloadProgress.Invoke();
+                    if(OnDownloadProgress != null) OnDownloadProgress.Invoke();
                     if (downloadedBytes == fileSize) break;
                     Thread.Sleep(200);
                 }
@@ -172,7 +180,7 @@ public class ComputerUtils_FastFileDownloader
                 
 
                 Logger.Log("File saved at " + savePath);
-                OnDownloadComplete?.Invoke();
+                if(OnDownloadComplete != null) OnDownloadComplete?.Invoke();
             }
 
             public long DownloadChunk(string url, string savePath, long startPos, long endPos, int chunkIndex, ref long[] bytesDownloadedArray)
@@ -224,7 +232,7 @@ public class ComputerUtils_FastFileDownloader
                     Cancel();
                     error = true;
                     exception = e;
-                    OnDownloadError.Invoke();
+                    if(OnDownloadError != null) OnDownloadError.Invoke();
                 }
 
                 return totalBytesRead;
