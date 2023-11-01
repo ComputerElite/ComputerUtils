@@ -115,11 +115,10 @@ public class ComputerUtils_FastFileDownloader
                     int chunkIndex = i;
                     new Thread(() =>
                     {
-                        fileSize = DownloadChunk(url, savePath, startPosArray[chunkIndex], endPosArray[chunkIndex], chunkIndex, ref bytesDownloadedArray);
+                        long fs = DownloadChunk(url, savePath, startPosArray[chunkIndex], endPosArray[chunkIndex], chunkIndex, ref bytesDownloadedArray);
+                        if (startPosArray.Length == 1) fileSize = fs; // Only set the fileSize if it's one connection only
                     }).Start();
                 }
-                    
-                Logger.Log("Tracking download progress");
                 // Wait for all threads to complete
                 while (true)
                 {
@@ -137,7 +136,7 @@ public class ComputerUtils_FastFileDownloader
         
                     //double progress = (double)downloadedBytes / fileSize * 100;
                     //Logger.Log("Download progress: " + progress.ToString("0.00") + "%");
-                    Logger.Log(downloadedBytes + " " + fileSize);
+                    //Logger.Log(downloadedBytes + " " + fileSize);
                     OnDownloadProgress.Invoke();
                     if (downloadedBytes == fileSize) break;
                     Thread.Sleep(200);
