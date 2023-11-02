@@ -10,6 +10,7 @@ using System.Net;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading;
+using ComputerUtils.CommandLine;
 
 namespace ComputerUtils.Updating
 {
@@ -180,7 +181,7 @@ namespace ComputerUtils.Updating
         /// </summary>
         /// <param name="dllName"></param>
         /// <param name="workingDir"></param>
-        public static void UpdateNetApp(string dllName, string workingDir = "")
+        public static void UpdateNetApp(string dllName, CommandLineCommandContainer args)
         {
             Logger.SetLogFile("updatelog.log");
             Logger.Log("Replacing everything with zip contents.");
@@ -200,7 +201,7 @@ namespace ComputerUtils.Updating
             ProcessStartInfo i = new ProcessStartInfo
             {
                 FileName = "dotnet",
-                Arguments = "\"" + destDir + dllName + "\" --workingdir \"" + workingDir + "\"",
+                Arguments = "\"" + destDir + dllName + "\"" + (args != null ? " " + args : "").Replace("update", ""),
                 UseShellExecute = false
             };
             Process.Start(i);
@@ -225,12 +226,12 @@ namespace ComputerUtils.Updating
             Environment.Exit(0);
         }
 
-        public static void StartUpdateNetApp(byte[] updateZip, string dllName, string workingDir = "")
+        public static void StartUpdateNetApp(byte[] updateZip, string dllName, CommandLineCommandContainer args = null)
         {
             FileManager.RecreateDirectoryIfExisting(AppDomain.CurrentDomain.BaseDirectory + "updater");
             string zip = AppDomain.CurrentDomain.BaseDirectory + "updater" + Path.DirectorySeparatorChar + "update.zip";
             string destDir = AppDomain.CurrentDomain.BaseDirectory + "updater" + Path.DirectorySeparatorChar;
-            Logger.Log("Writing update zip to " + zip);
+            Logger.Log("Writing update zip to " + zip); 
             File.WriteAllBytes(zip, updateZip);
             using (ZipArchive archive = ZipFile.OpenRead(zip))
             {
@@ -244,7 +245,7 @@ namespace ComputerUtils.Updating
             }
             ProcessStartInfo i = new ProcessStartInfo
             {
-                Arguments = "\"" + AppDomain.CurrentDomain.BaseDirectory + "updater" + Path.DirectorySeparatorChar + dllName + "\" update --workingdir \"" + workingDir + "\"",
+                Arguments = "\"" + AppDomain.CurrentDomain.BaseDirectory + "updater" + Path.DirectorySeparatorChar + dllName + "\" update " + (args != null ? " " + args : ""),
                 UseShellExecute = false,
                 FileName = "dotnet"
             };
