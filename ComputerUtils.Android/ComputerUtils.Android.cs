@@ -15,6 +15,7 @@ namespace ComputerUtils.Android
         public static ActivityResultLauncher launcher { get; set; } = null;
         public static AppCompatActivity activity { get; set; } = null;
         public static ActivityResultLauncher installLauncher { get; set; } = null;
+            
     }
     
     public class InstallLaucherResult: Java.Lang.Object, IActivityResultCallback
