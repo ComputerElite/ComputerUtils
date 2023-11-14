@@ -145,9 +145,9 @@ public class ComputerUtils_FastFileDownloader
                     //double progress = (double)downloadedBytes / fileSize * 100;
                     //Logger.Log("Download progress: " + progress.ToString("0.00") + "%");
                     //Logger.Log(downloadedBytes + " " + fileSize);
-                    if(OnDownloadProgress != null) OnDownloadProgress.Invoke();
+                    if(OnDownloadProgress != null && downloadedBytes > 0) OnDownloadProgress.Invoke();
                     if (downloadedBytes == fileSize) break;
-                    Thread.Sleep(200);
+                    Thread.Sleep(100);
                 }
                 
         
