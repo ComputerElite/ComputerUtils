@@ -127,7 +127,6 @@ namespace ComputerUtils.Webserver
                         if (!request.closed) request.Send403();
                         return;
                     }
-
                     for (int i = 0; i < routes.Count; i++)
                     {
                         if (routes[i].UseRoute(request)) break;
@@ -382,7 +381,7 @@ namespace ComputerUtils.Webserver
         {
             AddRoute("OPTIONS", path, request =>
             {
-                request.SendString("", "", 200, true, new Dictionary<string, string>
+                request.SendData(new byte[0], "", 200, true, new Dictionary<string, string>
                 {
                     {"Allow", String.Join(", ", allowedMethods)}
                 });
