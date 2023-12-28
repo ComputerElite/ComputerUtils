@@ -377,6 +377,18 @@ namespace ComputerUtils.Webserver
         {
             return MimeTypeMap.GetExtension(mimeType.ToLower());
         }
+
+        public void AddRouteOptions(string path, List<string> allowedMethods)
+        {
+            AddRoute("OPTIONS", path, request =>
+            {
+                request.SendString("", "", 200, true, new Dictionary<string, string>
+                {
+                    {"Allow", String.Join(", ", allowedMethods)}
+                });
+                return true;
+            });
+        }
     }
 
 
