@@ -66,6 +66,15 @@ public class ComputerUtils_FastFileDownloader
                 {
                     HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
                     request.Method = "GET";
+                    foreach(KeyValuePair<string, string> header in headers)
+                    {
+                        if (header.Key.ToLower() == "user-agent")
+                        {
+                            request.UserAgent = header.Value;
+                            continue;
+                        }
+                        request.Headers.Add(header.Key, header.Value);
+                    }
                     request.AllowAutoRedirect = true;
                     try
                     {
@@ -189,6 +198,11 @@ public class ComputerUtils_FastFileDownloader
                 request.Method = "GET";
                 foreach(KeyValuePair<string, string> header in headers)
                 {
+                    if (header.Key.ToLower() == "user-agent")
+                    {
+                        request.UserAgent = header.Value;
+                        continue;
+                    }
                     request.Headers.Add(header.Key, header.Value);
                 }
                 if(startPos != -1 && endPos != -1) request.AddRange(startPos, endPos);
