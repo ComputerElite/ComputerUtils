@@ -1,18 +1,20 @@
-﻿using Android;
+﻿using System;
+using Android;
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
 using AndroidX.Activity.Result;
 using AndroidX.Activity.Result.Contract;
 using ComputerUtils.Android.Logging;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using Android.OS;
 using Android.Provider;
+using Java.Lang;
 using Xamarin.Essentials;
 using static Xamarin.Essentials.Permissions;
+using String = System.String;
 using Uri = Android.Net.Uri;
 
 namespace ComputerUtils.Android.AndroidTools
@@ -56,11 +58,32 @@ namespace ComputerUtils.Android.AndroidTools
         }
     }
 
+    public class AndroidApp
+    {
+        public string PackageName { get; set; }
+        public string AppName { get; set; }
+        
+        public AndroidApp(string appName, string packageName)
+        {
+            PackageName = packageName;
+            AppName = appName;
+        }
+    }
+
     public class AndroidService
     {
-        public static List<App> GetInstalledApps(bool includeSystemApps = false)
+        public static Type[] launchSizeClasses = {
+            null,
+            null,
+            typeof(ChainLoadActivityPhone),
+            typeof(ChainLoadActivitySmall),
+            typeof(ChainLoadActivityLarge),
+            typeof(ChainLoadActivityHuge),
+        };
+    
+        public static List<AndroidApp> GetInstalledApps(bool includeSystemApps = false)
         {
-            List<App> inApps = new List<App>();
+            List<AndroidApp> inApps = new List<AndroidApp>();
             IList<ApplicationInfo> apps = Application.Context.PackageManager.GetInstalledApplications(PackageInfoFlags.MatchAll);
             for (int i = 0; i < apps.Count; i++)
             {
@@ -70,7 +93,7 @@ namespace ComputerUtils.Android.AndroidTools
                        info.PackageName.StartsWith("com.android") ||
                        info.PackageName.StartsWith("com.google") ||
                        info.PackageName.StartsWith("android")))) continue;
-                inApps.Add(new App(apps[i].LoadLabel(Application.Context.PackageManager), apps[i].PackageName));
+                inApps.Add(new AndroidApp(apps[i].LoadLabel(Application.Context.PackageManager), apps[i].PackageName));
             }
             return inApps;
         }
@@ -87,14 +110,30 @@ namespace ComputerUtils.Android.AndroidTools
 
             return packageName;
         }
-
+        
 		public static void LaunchApp(string packageName)
 		{
             Intent intent = Application.Context.PackageManager.GetLaunchIntentForPackage(packageName);
             if(intent != null)
             {
-				intent.SetFlags(ActivityFlags.ReorderToFront);
-				AndroidCore.context.StartActivity(intent);
+				intent.SetFlags(ActivityFlags.NewTask |
+                                ActivityFlags.NewDocument |
+                                ActivityFlags.MultipleTask);
+                Thread t = new Thread(() =>
+                {
+
+                    Thread.Sleep(650);
+                    AndroidCore.context.StartActivity(intent);
+                });
+                Thread t2 = new Thread(() =>
+                {
+
+                    Thread.Sleep(800);
+                    AndroidCore.context.StartActivity(intent);
+                });
+                AndroidCore.context.StartActivity(intent);
+                t.Start();
+                t2.Start();
 			}
 		}
 
@@ -120,7 +159,7 @@ namespace ComputerUtils.Android.AndroidTools
 
         public static bool IsPackageInstalled(string package)
         {
-            foreach (App a in GetInstalledApps())
+            foreach (AndroidApp a in GetInstalledApps())
             {
                 if (a.PackageName == package) return true;
             }
@@ -197,18 +236,6 @@ namespace ComputerUtils.Android.AndroidTools
         public static string GetDeviceID()
         {
             return Settings.Secure.GetString(AndroidCore.context.ContentResolver, Settings.Secure.AndroidId);
-        }
-    }
-
-    public class App
-    {
-        public string AppName { get; set; }
-        public string PackageName { get; set; }
-
-        public App(string appName, string packageName)
-        {
-            AppName = appName;
-            PackageName = packageName;
         }
     }
 }

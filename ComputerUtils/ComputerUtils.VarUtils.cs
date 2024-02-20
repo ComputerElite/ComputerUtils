@@ -74,13 +74,18 @@ namespace ComputerUtils.VarUtils
             // TB
             if (input > 1099511627776) return String.Format("{0:0." + new string('#', decimals) + "}", input / 1099511627776.0) + " TB";
             // GB
-            else if (input > 1073741824) return String.Format("{0:0." + new string('#', decimals) + "}", input / 1073741824.0) + " GB";
+            if (input > 1073741824) return String.Format("{0:0." + new string('#', decimals) + "}", input / 1073741824.0) + " GB";
             // MB
-            else if (input > 1048576) return String.Format("{0:0." + new string('#', decimals) + "}", input / 1048576.0) + " MB";
+            if (input > 1048576) return String.Format("{0:0." + new string('#', decimals) + "}", input / 1048576.0) + " MB";
             // KB
-            else if (input > 1024) return String.Format("{0:0." + new string('#', decimals) + "}", input / 1024.0) + " KB";
+            if (input > 1024) return String.Format("{0:0." + new string('#', decimals) + "}", input / 1024.0) + " KB";
             // Bytes
-            else return input + " Bytes";
+            return input + " Bytes";
+        }
+
+        public static string GigaByteSizeToString(double input, int decimals = 2)
+        {
+            return ByteSizeToString((long)(input * 1073741824), decimals);
         }
 
         public static string SecondsToBetterString(long seconds)

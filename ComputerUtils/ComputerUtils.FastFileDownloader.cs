@@ -40,7 +40,15 @@ public class ComputerUtils_FastFileDownloader
             {
                 Thread t = new Thread(() =>
                 {
-                    DownloadFileInternal(url, savePath, numConnections);
+                    try
+                    {
+                        DownloadFileInternal(url, savePath, numConnections);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Log("Exception while downloading: " + e, LoggingType.Warning);
+                        if(OnDownloadError != null) OnDownloadError.Invoke();
+                    }
                 });
                 t.Start();
             }
@@ -58,6 +66,15 @@ public class ComputerUtils_FastFileDownloader
                 {
                     HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
                     request.Method = "GET";
+                    foreach(KeyValuePair<string, string> header in headers)
+                    {
+                        if (header.Key.ToLower() == "user-agent")
+                        {
+                            request.UserAgent = header.Value;
+                            continue;
+                        }
+                        request.Headers.Add(header.Key, header.Value);
+                    }
                     request.AllowAutoRedirect = true;
                     try
                     {
@@ -69,7 +86,7 @@ public class ComputerUtils_FastFileDownloader
                         Logger.Log("Error while GET request: " + e);
                         error = true;
                         exception = e;
-                        OnDownloadError?.Invoke();
+                        if(OnDownloadError != null) OnDownloadError?.Invoke();
                         return;
                     }
 
@@ -79,7 +96,7 @@ public class ComputerUtils_FastFileDownloader
                         Logger.Log("File size is " + fileSize + ". Thus we cannot download the file");
                         error = true;
                         exception = new Exception("File size is 0");
-                        OnDownloadError?.Invoke();
+                        if(OnDownloadError != null) OnDownloadError?.Invoke();
                         return;
                     }
                     totalBytes = fileSize;
@@ -137,9 +154,9 @@ public class ComputerUtils_FastFileDownloader
                     //double progress = (double)downloadedBytes / fileSize * 100;
                     //Logger.Log("Download progress: " + progress.ToString("0.00") + "%");
                     //Logger.Log(downloadedBytes + " " + fileSize);
-                    OnDownloadProgress.Invoke();
+                    if(OnDownloadProgress != null && downloadedBytes > 0) OnDownloadProgress.Invoke();
                     if (downloadedBytes == fileSize) break;
-                    Thread.Sleep(200);
+                    Thread.Sleep(100);
                 }
                 
         
@@ -172,7 +189,7 @@ public class ComputerUtils_FastFileDownloader
                 
 
                 Logger.Log("File saved at " + savePath);
-                OnDownloadComplete?.Invoke();
+                if(OnDownloadComplete != null) OnDownloadComplete?.Invoke();
             }
 
             public long DownloadChunk(string url, string savePath, long startPos, long endPos, int chunkIndex, ref long[] bytesDownloadedArray)
@@ -181,6 +198,11 @@ public class ComputerUtils_FastFileDownloader
                 request.Method = "GET";
                 foreach(KeyValuePair<string, string> header in headers)
                 {
+                    if (header.Key.ToLower() == "user-agent")
+                    {
+                        request.UserAgent = header.Value;
+                        continue;
+                    }
                     request.Headers.Add(header.Key, header.Value);
                 }
                 if(startPos != -1 && endPos != -1) request.AddRange(startPos, endPos);
@@ -224,7 +246,7 @@ public class ComputerUtils_FastFileDownloader
                     Cancel();
                     error = true;
                     exception = e;
-                    OnDownloadError.Invoke();
+                    if(OnDownloadError != null) OnDownloadError.Invoke();
                 }
 
                 return totalBytesRead;

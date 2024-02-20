@@ -25,6 +25,7 @@ namespace ComputerUtils.Webserver
         public List<Route> routes = new List<Route>();
         public List<WebsocketRoute> wsRoutes = new List<WebsocketRoute>();
         public Func<ServerRequest, bool> accessCheck = new Func<ServerRequest, bool>(s => { return true; });
+        public Func<ServerRequest, bool> notFoundHandler = new Func<ServerRequest, bool>(s => { return false; });
         public ServerValueObject notFoundPage = new ServerValueObject("404 Not found - The requested item couldn't be found", false, "text/plain", 404);
         public ServerValueObject accessDeniedPage = new ServerValueObject("403 Access denied - You do not have access to view this item", false, "text/plain", 403);
         public Dictionary<string, string> defaultResponseHeaders = new Dictionary<string, string>() {
@@ -126,13 +127,12 @@ namespace ComputerUtils.Webserver
                         if (!request.closed) request.Send403();
                         return;
                     }
-
                     for (int i = 0; i < routes.Count; i++)
                     {
                         if (routes[i].UseRoute(request)) break;
                     }
-
-                    if (!request.closed) request.Send404();
+                    
+                    if (!request.closed && !notFoundHandler.Invoke(request)) request.Send404();
                     request.Dispose();
                 }
             }
@@ -375,6 +375,18 @@ namespace ComputerUtils.Webserver
         public static string GetFileExtension(string mimeType)
         {
             return MimeTypeMap.GetExtension(mimeType.ToLower());
+        }
+
+        public void AddRouteOptions(string path, List<string> allowedMethods)
+        {
+            AddRoute("OPTIONS", path, request =>
+            {
+                request.SendData(new byte[0], "", 200, true, new Dictionary<string, string>
+                {
+                    {"Allow", String.Join(", ", allowedMethods)}
+                });
+                return true;
+            });
         }
     }
 
