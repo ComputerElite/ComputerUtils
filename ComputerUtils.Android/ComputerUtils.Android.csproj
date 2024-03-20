@@ -92,6 +92,9 @@
     <PackageReference Include="Xamarin.Google.Android.Material">
       <Version>1.4.0.2</Version>
     </PackageReference>
+    <PackageReference Include="xdelta3.net">
+      <Version>1.0.1</Version>
+    </PackageReference>
   </ItemGroup>
   <ItemGroup>
     <AndroidResource Include="Resources\values\strings.xml" />
