@@ -1,6 +1,8 @@
 ﻿using ComputerUtils.Android.Logging;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using ComputerUtils.Android.VarUtils;
 
 namespace ComputerUtils.Android.FileManaging
 {
@@ -25,6 +27,42 @@ namespace ComputerUtils.Android.FileManaging
                 size += GetDirSize(di);
             }
             return size;
+        }
+
+        public static List<FileEntry> GetAllFilesRecursively(string dir, string start = "")
+        {
+            List<FileEntry> files = new List<FileEntry>();
+            if(dir.EndsWith(Path.DirectorySeparatorChar)) dir = dir.Substring(0, dir.Length - 1);
+            foreach (string d in Directory.GetDirectories(dir))
+            {
+                files.AddRange(GetAllFilesRecursively(d, start + Path.DirectorySeparatorChar + Path.GetFileName(d)));
+            }
+            foreach (string f in Directory.GetFiles(dir))
+            {
+                FileEntry entry = new FileEntry();
+                
+                entry.name = Path.GetFileName(f);
+                entry.path = start + Path.DirectorySeparatorChar + entry.name;
+                if(entry.path.StartsWith(Path.DirectorySeparatorChar.ToString())) entry.path = entry.path.Substring(1);
+                entry.size = new FileInfo(f).Length;
+                files.Add(entry);
+            }
+            return files;
+        }
+
+        public class FileEntry
+        {
+            public string name { get; set; }
+            public string path { get; set; }
+            public long size { get; set; } = 0;
+
+            public string sizeString
+            {
+                get
+                {
+                    return SizeConverter.ByteSizeToString(size);
+                }
+            }
         }
 
         public static string GetParentDirIfExisting(string dir)

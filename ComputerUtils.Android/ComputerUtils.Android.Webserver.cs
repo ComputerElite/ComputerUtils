@@ -221,6 +221,14 @@ namespace ComputerUtils.Android.Webserver
         {
             routes.Add(new Route(method, path, action, onlyCheckBeginning, ignoreCase, ignoreEnd, cache, cacheValidityInSeconds, clientCache, clientCacheValidityInSeconds));
         }
+        
+        public void AddRouteStreamOnly(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false, int cacheValidityInSeconds = 0, bool clientCache = false, int clientCacheValidityInSeconds = 0)
+        {
+            Route r = new Route(method, path, action, onlyCheckBeginning, ignoreCase, ignoreEnd, cache,
+                cacheValidityInSeconds, clientCache, clientCacheValidityInSeconds);
+            r.populateBody = false;
+            routes.Add(r);
+        }
 
         public void AddRouteRedirect(string method, string path, string target, bool onlyCheckBeginning = false, bool ignoreCase = true, bool ignoreEnd = true)
         {
@@ -452,6 +460,7 @@ namespace ComputerUtils.Android.Webserver
         public int cacheValidityInSeconds { get; set; } = 0;
         public int clientCacheValidityInSeconds { get; set; } = 0;
         public Func<ServerRequest, bool> action { get; set; } = null;
+        public bool populateBody { get; set; } = true;
 
         public Route(string method, string path, Func<ServerRequest, bool> action, bool onlyCheckBeginning, bool ignoreCase, bool ignoreEnd, bool cache, int cacheValidityInSeconds, bool clientCache, int clientCacheValidityInSeconds)
         {
@@ -493,6 +502,7 @@ namespace ComputerUtils.Android.Webserver
 
         public bool UseRouteWithCache(ServerRequest request)
         {
+            if(this.populateBody) request.ReceiveBody();
             if (clientCache)
             {
                 if (clientCacheValidityInSeconds != 0) request.automaticHeaders.Add("Cache-Control", "max-age=" + clientCacheValidityInSeconds);
@@ -597,6 +607,10 @@ namespace ComputerUtils.Android.Webserver
             this.method = context.Request.HttpMethod;
             this.server = server;
             this.queryString = context.Request.QueryString;
+        }
+
+        public void ReceiveBody()
+        {
             if (context.Request.HasEntityBody && context.Request.InputStream != Stream.Null)
             {
                 byte[] buffer = new byte[16 * 1024];
