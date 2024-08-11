@@ -18,36 +18,43 @@ namespace ComputerUtils.Android.Logging
         public static void Log(string text, LoggingType loggingType = LoggingType.Info)
         {
             //Remove username
-            if (removeUsernamesFromLog) text = RegexTemplates.RemoveUserName(text);
-            string linePrefix = GetLinePrefix(loggingType);
-            text = linePrefix + text.Replace("\n", "\n" + linePrefix);
-            if (displayLogInConsole)
+            //if (removeUsernamesFromLog) text = RegexTemplates.RemoveUserName(text);
+            try
             {
-                switch (loggingType)
+                string linePrefix = GetLinePrefix(loggingType);
+                text = linePrefix + text.Replace("\n", "\n" + linePrefix);
+                if (displayLogInConsole)
                 {
-                    case LoggingType.Error:
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        break;
-                    case LoggingType.Info:
-                        Console.ForegroundColor = ConsoleColor.White;
-                        break;
-                    case LoggingType.Crash:
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        break;
-                    case LoggingType.Warning:
-                        Console.ForegroundColor = ConsoleColor.Yellow;
-                        break;
-                    case LoggingType.Debug:
-                        Console.ForegroundColor = ConsoleColor.DarkYellow;
-                        break;
+                    switch (loggingType)
+                    {
+                        case LoggingType.Error:
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            break;
+                        case LoggingType.Info:
+                            Console.ForegroundColor = ConsoleColor.White;
+                            break;
+                        case LoggingType.Crash:
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            break;
+                        case LoggingType.Warning:
+                            Console.ForegroundColor = ConsoleColor.Yellow;
+                            break;
+                        case LoggingType.Debug:
+                            Console.ForegroundColor = ConsoleColor.DarkYellow;
+                            break;
+                    }
+                    Console.WriteLine(longLogInConsole ? text : text.Replace(linePrefix, ""));
+                    Console.ForegroundColor = ConsoleColor.White;
                 }
-                Console.WriteLine(longLogInConsole ? text : text.Replace(linePrefix, ""));
-                Console.ForegroundColor = ConsoleColor.White;
-			}
-			log += "\n" + text;
-			if (log.Length > 50000) log = log.Substring(log.Length - 50000);
-			if (logFile == "") return;
-            LogRaw(text + "\n");
+                log += "\n" + text;
+                if (log.Length > 50000) log = log.Substring(log.Length - 50000);
+                if (logFile == "") return;
+                LogRaw(text + "\n");
+            } catch (Exception e)
+            {
+                Console.WriteLine("Exception during logging: " + e.Message);
+            }
+            
         }
         
         public static void Log(string text, string prefix)
