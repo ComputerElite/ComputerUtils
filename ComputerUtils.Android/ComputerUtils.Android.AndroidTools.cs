@@ -14,6 +14,7 @@ using Android.Provider;
 using Java.Lang;
 using Xamarin.Essentials;
 using static Xamarin.Essentials.Permissions;
+using Process = System.Diagnostics.Process;
 using String = System.String;
 using Uri = Android.Net.Uri;
 
@@ -112,7 +113,7 @@ namespace ComputerUtils.Android.AndroidTools
         }
         
 		public static void LaunchApp(string packageName)
-		{
+        {
             Intent intent = Application.Context.PackageManager.GetLaunchIntentForPackage(packageName);
             if(intent != null)
             {
