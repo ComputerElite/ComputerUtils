@@ -637,6 +637,35 @@ namespace ComputerUtils.Webserver
                 this.bodyString = context.Request.ContentEncoding.GetString(bodyBytes);
             }
         }
+        
+        public void ForwardStream(Stream s, long contentLength, string contentType, Encoding contentEncoding, int statusCode, bool closeRequest, Dictionary<string, string> headers = null)
+        {
+            if (contentType != "") context.Response.ContentType = contentType;
+            context.Response.ContentEncoding = contentEncoding;
+            context.Response.ContentLength64 = contentLength;
+            context.Response.StatusCode = statusCode;
+            if (server.defaultResponseHeaders != null)
+            {
+                foreach (KeyValuePair<string, string> header in server.defaultResponseHeaders) context.Response.Headers[header.Key] = header.Value;
+            }
+            if (automaticHeaders != null)
+            {
+                foreach (KeyValuePair<string, string> header in automaticHeaders) context.Response.Headers[header.Key] = header.Value;
+            }
+            if (headers != null)
+            {
+                foreach (KeyValuePair<string, string> header in headers) context.Response.Headers[header.Key] = header.Value;
+            }
+            //Logger.Log("    Sending " + data.LongLength + " bytes of data to " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " from " + path);
+            s.CopyTo(context.Response.OutputStream);
+            serverRequestDetails.sentContentType = contentType;
+            serverRequestDetails.sentContentEncoding = contentEncoding;
+            serverRequestDetails.sentStatusCode = statusCode;
+            serverRequestDetails.sentCloseRequest = closeRequest;
+            serverRequestDetails.sentHeaders = headers;
+            if (closeRequest) Close();
+            closed = closeRequest;
+        }
 
         public override string ToString()
         {
