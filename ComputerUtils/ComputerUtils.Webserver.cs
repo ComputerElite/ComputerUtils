@@ -127,9 +127,25 @@ namespace ComputerUtils.Webserver
                         if (!request.closed) request.Send403();
                         return;
                     }
+
+                    if (autoServeOptions && request.method == "OPTIONS")
+                    {
+                        // Handle options
+                        request.SendData(new byte[0], "", 200, true, new Dictionary<string, string>
+                        {
+                            {"Allow", String.Join(",", routes.Where(x => x.path == request.path).ToList().ConvertAll(x => x.method))},
+                            {"Access-Control-Allow-Origin", request.origin},
+                            {"Access-Control-Allow-Headers", "authorization"}
+                        });
+                    }
                     for (int i = 0; i < routes.Count; i++)
                     {
                         if (routes[i].UseRoute(request)) break;
+                    }
+
+                    if (request.method == "OPTIONS")
+                    {
+                        
                     }
                     
                     if (!request.closed && !notFoundHandler.Invoke(request)) request.Send404();
@@ -185,6 +201,8 @@ namespace ComputerUtils.Webserver
         }
 
         public Process currentProcess = Process.GetCurrentProcess();
+        public bool autoServeOptions = false;
+
         public void AddCacheResponse(ServerRequest request, int cacheValidityInSeconds)
         {
             CacheResponse res = new CacheResponse();
@@ -598,6 +616,7 @@ namespace ComputerUtils.Webserver
         public string pathDiff { get; set; } = "";
         public string origin { get; set; } = "";
         public string method { get; set; } = "GET";
+        public bool allowAllOrigins { get; set; } = false;
         public HttpServer server { get; set; } = null;
         public bool closed { get; set; } = false;
         public byte[] bodyBytes { get; set; } = new byte[0];
@@ -755,6 +774,11 @@ namespace ComputerUtils.Webserver
             if (headers != null)
             {
                 foreach (KeyValuePair<string, string> header in headers) context.Response.Headers[header.Key] = header.Value;
+            }
+            if (allowAllOrigins)
+            {
+                // set cors header to origin
+                context.Response.Headers["Access-Control-Allow-Origin"] = origin;
             }
             if (server.logRequests) Logger.Log("    Sending " + data.LongLength + " bytes of data to " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " from " + path, LoggingType.WebServer);
             context.Response.OutputStream.Write(data, 0, data.Length);
