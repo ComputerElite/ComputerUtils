@@ -14,7 +14,7 @@ namespace ComputerUtils.Android.Logging
 		public static bool removeUsernamesFromLog { get; set; } = true;
         public static bool displayLogInConsole { get; set; } = false;
         public static bool longLogInConsole { get; set; } = true;
-        public static Dictionary<string> notAllowedStrings { get; set; } = new Dictionary<string>();
+        public static Dictionary<string, string> notAllowedStrings { get; set; } = new Dictionary<string, string>();
         public static ReaderWriterLock locker = new ReaderWriterLock();
 
         public static string CensorString(string input)
