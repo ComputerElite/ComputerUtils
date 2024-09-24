@@ -13,7 +13,14 @@ namespace ComputerUtils.Android.Logging
 		public static bool removeUsernamesFromLog { get; set; } = true;
         public static bool displayLogInConsole { get; set; } = false;
         public static bool longLogInConsole { get; set; } = true;
+        public static List<string> notAllowedStrings { get; set; } = new List<string>();
         public static ReaderWriterLock locker = new ReaderWriterLock();
+
+        public static string CensorString(string input)
+        {
+            foreach (KeyValuePair<string, string> s in notAllowedStrings) input = input.Replace(s.Key, s.Value);
+            return input;
+        }
 
         public static void Log(string text, LoggingType loggingType = LoggingType.Info)
         {
@@ -23,6 +30,7 @@ namespace ComputerUtils.Android.Logging
             {
                 string linePrefix = GetLinePrefix(loggingType);
                 text = linePrefix + text.Replace("\n", "\n" + linePrefix);
+                text = CensorString(text);
                 if (displayLogInConsole)
                 {
                     switch (loggingType)
