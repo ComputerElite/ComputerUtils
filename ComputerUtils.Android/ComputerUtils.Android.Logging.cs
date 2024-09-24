@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Collections.Generic;
 
 namespace ComputerUtils.Android.Logging
 {
@@ -13,7 +14,7 @@ namespace ComputerUtils.Android.Logging
 		public static bool removeUsernamesFromLog { get; set; } = true;
         public static bool displayLogInConsole { get; set; } = false;
         public static bool longLogInConsole { get; set; } = true;
-        public static List<string> notAllowedStrings { get; set; } = new List<string>();
+        public static Dictionary<string> notAllowedStrings { get; set; } = new Dictionary<string>();
         public static ReaderWriterLock locker = new ReaderWriterLock();
 
         public static string CensorString(string input)
