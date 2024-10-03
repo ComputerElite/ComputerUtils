@@ -135,7 +135,6 @@ namespace ComputerUtils.Webserver
                         {
                             {"Access-Control-Allow-Methods", String.Join(",", routes.Where(x =>
                             {
-                                Logger.Log(x.path + " == " + request.path + " -> " + x.IsPathValidForActivation(request.path));
                                 return x.IsPathValidForActivation(request.path);
                             }).ToList().ConvertAll(x => x.method))},
                             {"Access-Control-Allow-Origin", request.origin},
