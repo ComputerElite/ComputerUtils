@@ -133,9 +133,9 @@ namespace ComputerUtils.Webserver
                         // Handle options
                         request.SendData(new byte[0], "", 200, true, new Dictionary<string, string>
                         {
-                            {"Allow", String.Join(",", routes.Where(x =>
+                            {"Access-Control-Allow-Methods", String.Join(",", routes.Where(x =>
                             {
-                                
+                                Logger.Log(x.path + " == " + request.path + " -> " + x.IsPathValidForActivation(request.path));
                                 return x.IsPathValidForActivation(request.path);
                             }).ToList().ConvertAll(x => x.method))},
                             {"Access-Control-Allow-Origin", request.origin},
