@@ -133,7 +133,11 @@ namespace ComputerUtils.Webserver
                         // Handle options
                         request.SendData(new byte[0], "", 200, true, new Dictionary<string, string>
                         {
-                            {"Allow", String.Join(",", routes.Where(x => x.path == request.path).ToList().ConvertAll(x => x.method))},
+                            {"Allow", String.Join(",", routes.Where(x =>
+                            {
+                                
+                                return x.IsPathValidForActivation(request.path);
+                            }).ToList().ConvertAll(x => x.method))},
                             {"Access-Control-Allow-Origin", request.origin},
                             {"Access-Control-Allow-Headers", "authorization"}
                         });
@@ -506,21 +510,11 @@ namespace ComputerUtils.Webserver
             this.clientCacheValidityInSeconds = clientCacheValidityInSeconds;
         }
 
+        
+        
         public bool UseRoute(ServerRequest request)
         {
-            string pathTmp = this.path;
-            string requestPathTmp = request.path;
-            if(ignoreCase)
-            {
-                pathTmp = pathTmp.ToLower();
-                requestPathTmp = requestPathTmp.ToLower();
-            }
-            if(ignoreEnd)
-            {
-                pathTmp = pathTmp.Trim(new char[] { '/' });
-                requestPathTmp = requestPathTmp.Trim(new char[] { '/' });
-            }
-            if((requestPathTmp == pathTmp || onlyCheckBeginning && requestPathTmp.StartsWith(pathTmp)) && request.method == this.method)
+            if (IsPathValidForActivation(request.path) && request.method == this.method)
             {
                 if(request.path.Length >= path.Length) request.pathDiff = request.path.Substring(path.Length);
                 return UseRouteWithCache(request);
@@ -549,6 +543,29 @@ namespace ComputerUtils.Webserver
         public void Dispose()
         {
             GC.SuppressFinalize(this);
+        }
+
+        public bool IsPathValidForActivation(string requestPath)
+        {
+            string pathTmp = this.path;
+            string requestPathTmp = requestPath;
+            if(ignoreCase)
+            {
+                pathTmp = pathTmp.ToLower();
+                requestPathTmp = requestPathTmp.ToLower();
+            }
+            if(ignoreEnd)
+            {
+                pathTmp = pathTmp.Trim(new char[] { '/' });
+                requestPathTmp = requestPathTmp.Trim(new char[] { '/' });
+            }
+
+            if ((requestPathTmp == pathTmp || onlyCheckBeginning && requestPathTmp.StartsWith(pathTmp)))
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 
