@@ -291,16 +291,6 @@ namespace ComputerUtils.Webserver
             if (match != null) routes.Remove(match);
         }
 
-        public void AddRouteFile(string path, string filePath, bool ignoreCase = true, bool ignoreEnd = true, bool cache = false)
-        {
-            string contentType = GetContentTpe(filePath);
-            AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
-            {
-                ServerRequest.SendFile(filePath);
-                return true;
-            }), false, ignoreCase, ignoreEnd, cache, 0, true);
-        }
-
         public void AddRouteFile(string path, string filePath, Dictionary<string, string> dictionary)
         {
             AddRouteFile(path, filePath, dictionary, true, true, false, null);
@@ -828,7 +818,7 @@ namespace ComputerUtils.Webserver
         public string pathDiff { get; set; } = "/";
         public HttpServer server { get; set; } = null;
         public bool closed { get; set; } = false;
-        public object customObject { get; set; } = null;
+        public string? customId { get; set; } = null;
         public WebSocket socket { get; set; } = null;
         public WebsocketRoute route { get; set; } = null;
 
@@ -909,10 +899,21 @@ namespace ComputerUtils.Webserver
         public HttpServer server { get; set; } = null;
         public byte[] bodyBytes { get; set; } = new byte[0];
         public string bodyString { get; set; } = "";
-        public object customObject { get; set; } = null;
-        public SocketHandler handler { get; set; } = null;
-        public NameValueCollection queryString { get; set; } = null;
-        public WebSocketReceiveResult receiveResult { get; set; } = null;
+
+        public string? customId
+        {
+            get
+            {
+                return handler?.customId;
+            }
+            set
+            {
+                handler.customId = value;
+            }
+        }
+        public SocketHandler? handler { get; set; } = null;
+        public NameValueCollection? queryString { get; set; } = null;
+        public WebSocketReceiveResult? receiveResult { get; set; } = null;
 
         public SocketServerRequest(HttpListenerContext context, HttpServer server, SocketHandler handler, WebSocketReceiveResult receiveResult, byte[] bytes, string pathDiff)
         {
