@@ -495,7 +495,6 @@ namespace ComputerUtils.Webserver
         
         public bool UseRoute(ServerRequest request)
         {
-            Logger.Log(request.path + " - " + path + " = " + IsPathValidForActivation(request.path), LoggingType.Debug);
             if (IsPathValidForActivation(request.path) && request.method == this.method)
             {
                 if(request.path.Length >= path.Length) request.pathDiff = request.path.Substring(path.Length);
