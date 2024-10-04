@@ -273,13 +273,8 @@ namespace ComputerUtils.Webserver
         {
             routes.Add(new Route(method, path, new Func<ServerRequest, bool>(request =>
             {
-                string queryString = "?";
-                foreach(string n in request.queryString.AllKeys)
-                {
-                    queryString += n + "=" + request.queryString[n] + "&";
-                }
-                if(queryString.EndsWith("&")) queryString = queryString.Substring(0, queryString.Length - 1);
-                if(!target.EndsWith("/")) target += "/";
+                string[] parts = request.path.Split('?');
+                string queryString = parts.Length > 1 ? "?" + parts[1] : "";
                 request.Redirect(target + request.pathDiff + queryString);
                 return true;
             }), onlyCheckBeginning, ignoreCase, ignoreEnd, false, 0, false, 0));
@@ -298,7 +293,6 @@ namespace ComputerUtils.Webserver
 
         public void AddRouteFile(string path, string filePath, Dictionary<string, string> replace, bool ignoreCase, bool ignoreEnd = true, bool cache = false, int cacheValidityInSeconds = 0, bool clientCache = false, int clientCacheValidityInSeconds = 0)
         {
-            string contentType = GetContentTpe(filePath);
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
                 ServerRequest.SendFile(filePath, replace);
@@ -313,7 +307,6 @@ namespace ComputerUtils.Webserver
                 AddRouteFile(path, filePath, replace, ignoreCase, ignoreEnd, cache, 0, cache, 0);
                 return;
             }
-            string contentType = GetContentTpe(filePath);
             AddRoute("GET", path, new Func<ServerRequest, bool>(ServerRequest =>
             {
                 if (!accessCheck.Invoke(ServerRequest)) return true;
@@ -487,7 +480,6 @@ namespace ComputerUtils.Webserver
         {
             this.method = method;
             this.path = path;
-            if (!this.path.EndsWith("/")) this.path += "/";
             if (!this.path.StartsWith("/")) this.path = "/" + this.path;
             this.action = action;
             this.onlyCheckBeginning = onlyCheckBeginning;
@@ -503,6 +495,7 @@ namespace ComputerUtils.Webserver
         
         public bool UseRoute(ServerRequest request)
         {
+            Logger.Log(request.path + " - " + path + " = " + IsPathValidForActivation(request.path), LoggingType.Debug);
             if (IsPathValidForActivation(request.path) && request.method == this.method)
             {
                 if(request.path.Length >= path.Length) request.pathDiff = request.path.Substring(path.Length);
@@ -549,7 +542,7 @@ namespace ComputerUtils.Webserver
                 requestPathTmp = requestPathTmp.Trim(new char[] { '/' });
             }
 
-            if ((requestPathTmp == pathTmp || onlyCheckBeginning && requestPathTmp.StartsWith(pathTmp)))
+            if (requestPathTmp == pathTmp || onlyCheckBeginning && requestPathTmp.StartsWith(pathTmp))
             {
                 return true;
             }
