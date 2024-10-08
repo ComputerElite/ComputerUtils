@@ -40,7 +40,8 @@ namespace ComputerUtils.Webserver
         public bool logRequests = true;
         public string[] otherPrefixes = new string[0];
         public Thread serverThread = null;
-        
+        public int MaxWebsocketMessageSize { get; set; } = 4096;
+
         public void StartServer(int port, bool setupHttps = false, string[] otherPrefixes = null)
         {
             StartServer(new int[] { port }, setupHttps, otherPrefixes);
@@ -834,36 +835,43 @@ namespace ComputerUtils.Webserver
             }
             Thread t = new Thread(() =>
             {
-                while (!closed)
+                try
                 {
-                    byte[] buffer = new byte[4096];
-                    if (socket.State != WebSocketState.Open)
+                    while (!closed)
                     {
-                        closed = true;
-                        Dispose();
-                        return;
+                        byte[] buffer = new byte[server.MaxWebsocketMessageSize];
+                        if (socket.State != WebSocketState.Open)
+                        {
+                            closed = true;
+                            Dispose();
+                            return;
+                        }
+                        WebSocketReceiveResult result;
+                        try
+                        {
+                            result = socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None).Result;
+                        } catch (Exception e)
+                        {
+                            Logger.Log("Unable to recieve Websocket. Terminating connection:" + e.ToString(), LoggingType.Warning);
+                            break;
+                        }
+                        if (result.MessageType == WebSocketMessageType.Close)
+                        {
+                            if (server.logRequests) Logger.Log("Websocket closed by client: " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()), LoggingType.WebServer);
+                            closed = true;
+                            socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                        } else
+                        {
+                            buffer = buffer.TakeWhile((v, index) => buffer.Skip(index).Any(w => w != 0x00)).ToArray();
+                            SocketServerRequest socketRequest = new SocketServerRequest(context, server, this, result, buffer, pathDiff);
+                            if (server.logRequests) Logger.Log("Websocket from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " sent " + (socketRequest.bodyString.Length > 500 ? socketRequest.bodyString.Substring(0, 500) + " [...]" : socketRequest.bodyString), LoggingType.WebServer);
+                            route.action(socketRequest);
+                        }
                     }
-                    WebSocketReceiveResult result;
-                    try
-                    {
-                        result = socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None).Result;
-                    } catch (Exception e)
-                    {
-                        Logger.Log("Unable to recieve Websocket. Terminating connection:" + e.ToString(), LoggingType.Warning);
-                        break;
-                    }
-                    if (result.MessageType == WebSocketMessageType.Close)
-                    {
-                        if (server.logRequests) Logger.Log("Websocket closed by client: " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()), LoggingType.WebServer);
-                        closed = true;
-                        socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
-                    } else
-                    {
-                        buffer = buffer.TakeWhile((v, index) => buffer.Skip(index).Any(w => w != 0x00)).ToArray();
-                        SocketServerRequest socketRequest = new SocketServerRequest(context, server, this, result, buffer, pathDiff);
-                        if (server.logRequests) Logger.Log("Websocket from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " sent " + (socketRequest.bodyString.Length > 500 ? socketRequest.bodyString.Substring(0, 500) + " [...]" : socketRequest.bodyString), LoggingType.WebServer);
-                        route.action(socketRequest);
-                    }
+                }
+                catch (Exception e)
+                {
+                    Logger.Log("An unknown exception occurred during handling of a WebSocket request:\n" + e.ToString(), LoggingType.Error);
                 }
                 Dispose();
             });
