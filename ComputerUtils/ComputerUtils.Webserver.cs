@@ -40,7 +40,7 @@ namespace ComputerUtils.Webserver
         public bool logRequests = true;
         public string[] otherPrefixes = new string[0];
         public Thread serverThread = null;
-        public int MaxWebsocketMessageSize { get; set; } = 4096;
+        public int MaxWebsocketMessageSize { get; set; } = 128888;
 
         public void StartServer(int port, bool setupHttps = false, string[] otherPrefixes = null)
         {
@@ -864,7 +864,7 @@ namespace ComputerUtils.Webserver
                         {
                             buffer = buffer.TakeWhile((v, index) => buffer.Skip(index).Any(w => w != 0x00)).ToArray();
                             SocketServerRequest socketRequest = new SocketServerRequest(context, server, this, result, buffer, pathDiff);
-                            if (server.logRequests) Logger.Log("Websocket from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " sent " + (socketRequest.bodyString.Length > 500 ? socketRequest.bodyString.Substring(0, 500) + " [...]" : socketRequest.bodyString), LoggingType.WebServer);
+                            if (server.logRequests) Logger.Log("Websocket from " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " sent " + ( socketRequest.bodyString.Length > 500 ? socketRequest.bodyString.Substring(0, 500) + " [...]" : socketRequest.bodyString), LoggingType.WebServer);
                             route.action(socketRequest);
                         }
                     }
@@ -923,7 +923,8 @@ namespace ComputerUtils.Webserver
             this.pathDiff = pathDiff;
             this.server = server;
             this.handler = handler;
-            this.bodyString = Encoding.UTF8.GetString(bytes);
+            
+            this.bodyString = receiveResult.MessageType == WebSocketMessageType.Text ? Encoding.UTF8.GetString(bytes) : "<binary data>";
             this.bodyBytes = bytes;
             this.receiveResult = receiveResult;
         }
@@ -942,7 +943,7 @@ namespace ComputerUtils.Webserver
                 return;
             }
             if (server.logRequests) Logger.Log("    Sending " + data.LongLength + " bytes of data to " + (context.Request.Headers["X-Forwarded-For"] ?? context.Request.RemoteEndPoint.Address.ToString()) + " via websocket at " + path, LoggingType.WebServer);
-            handler.socket.SendAsync(new ArraySegment<byte>(data, 0, data.Length), WebSocketMessageType.Text, receiveResult.EndOfMessage, CancellationToken.None);
+            handler.socket.SendAsync(new ArraySegment<byte>(data, 0, data.Length), msgType, receiveResult.EndOfMessage, CancellationToken.None);
             if (closeRequest) Close();
         }
 
