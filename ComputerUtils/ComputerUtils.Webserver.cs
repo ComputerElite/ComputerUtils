@@ -139,7 +139,7 @@ namespace ComputerUtils.Webserver
                                 return x.IsPathValidForActivation(request.path);
                             }).ToList().ConvertAll(x => x.method))},
                             {"Access-Control-Allow-Origin", request.origin},
-                            {"Access-Control-Allow-Headers", "authorization"}
+                            {"Access-Control-Allow-Headers", "authorization, content-type"}
                         });
                     }
                     for (int i = 0; i < routes.Count; i++)
@@ -924,7 +924,7 @@ namespace ComputerUtils.Webserver
             this.server = server;
             this.handler = handler;
             
-            this.bodyString = receiveResult.MessageType == WebSocketMessageType.Text ? Encoding.UTF8.GetString(bytes) : "<binary data>";
+            this.bodyString = receiveResult.MessageType == WebSocketMessageType.Text ? Encoding.UTF8.GetString(bytes) : "<binary data> (" + bytes.Length + ")";
             this.bodyBytes = bytes;
             this.receiveResult = receiveResult;
         }
